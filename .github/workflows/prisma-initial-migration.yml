@@ -105,6 +105,12 @@ jobs:
         run: |
           pnpm --dir apps/api exec prisma migrate deploy
 
+      - name: Generate Prisma Client
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: pnpm --dir apps/api exec prisma generate
+
       - name: Build API
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
