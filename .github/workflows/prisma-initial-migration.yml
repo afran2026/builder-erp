@@ -1,0 +1,112 @@
+name: Initial Prisma Migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  initial-migration:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.21.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Verify Neon database is empty
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          test -n "$DIRECT_URL"
+
+          COUNT=$(psql "$DIRECT_URL" -X -At \
+            -v ON_ERROR_STOP=1 \
+            -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public';")
+
+          HISTORY=$(psql "$DIRECT_URL" -X -At \
+            -v ON_ERROR_STOP=1 \
+            -c "SELECT to_regclass('public._prisma_migrations') IS NOT NULL;")
+
+          if [ "$COUNT" != "0" ] || [ "$HISTORY" != "f" ]; then
+            echo "Database is not empty. Aborting."
+            exit 1
+          fi
+
+          echo "PASS: Empty database confirmed"
+
+      - name: Generate initial migration SQL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          test -n "$DATABASE_URL"
+          test -n "$DIRECT_URL"
+
+          cd apps/api
+
+          if find prisma/migrations -name migration.sql \
+            -type f 2>/dev/null | grep -q .; then
+            echo "Migration already exists. Aborting."
+            exit 1
+          fi
+
+          MIGRATION_NAME="$(date -u +%Y%m%d%H%M%S)_init"
+
+          mkdir -p "prisma/migrations/$MIGRATION_NAME"
+
+          pnpm exec prisma migrate diff \
+            --from-empty \
+            --to-schema-datamodel prisma/schema.prisma \
+            --script \
+            > "prisma/migrations/$MIGRATION_NAME/migration.sql"
+
+          test -s "prisma/migrations/$MIGRATION_NAME/migration.sql"
+
+          echo "Generated: $MIGRATION_NAME"
+
+      - name: Commit migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add apps/api/prisma/migrations
+
+          git commit -m "db: add initial Prisma migration"
+
+          git push origin HEAD:main
+
+      - name: Deploy initial migration to Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          pnpm --dir apps/api exec prisma migrate deploy
+
+      - name: Build API
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: pnpm --dir apps/api build
