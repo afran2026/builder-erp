@@ -33,11 +33,12 @@ jobs:
       - name: Install PostgreSQL client
         run: |
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client ca-certificates
 
       - name: Verify Neon database is empty
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          PGSSLROOTCERT: /etc/ssl/certs/ca-certificates.crt
         run: |
           test -n "$DIRECT_URL"
 
