@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+.env
+.env.local
+*.log
+
+# Local environment files
+.env.*
+!.env.example
+node_modules/
+.next/
+apps/api/src/generated/prisma/
+*.backup_*
