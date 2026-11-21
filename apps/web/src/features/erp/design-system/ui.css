@@ -1,0 +1,284 @@
+/* Shared ERP UI primitives */
+
+.erp-ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--erp-radius-md);
+  font: 600 var(--erp-text-sm)/1.4 var(--erp-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--erp-transition-fast),
+    border-color var(--erp-transition-fast),
+    color var(--erp-transition-fast),
+    box-shadow var(--erp-transition-fast);
+}
+
+.erp-ui-button:focus-visible,
+.erp-ui-input:focus-visible,
+.erp-ui-select:focus-visible,
+.erp-ui-textarea:focus-visible {
+  outline: none;
+  box-shadow: var(--erp-focus-ring);
+}
+
+.erp-ui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.erp-ui-button--primary {
+  background: var(--erp-primary);
+  color: var(--erp-primary-contrast);
+}
+.erp-ui-button--primary:hover:not(:disabled) {
+  background: var(--erp-primary-hover);
+}
+.erp-ui-button--secondary {
+  border-color: var(--erp-border);
+  background: var(--erp-surface);
+  color: var(--erp-text);
+}
+.erp-ui-button--secondary:hover:not(:disabled) {
+  background: var(--erp-surface-muted);
+}
+.erp-ui-button--danger {
+  background: var(--erp-danger);
+  color: white;
+}
+.erp-ui-button--ghost {
+  background: transparent;
+  color: var(--erp-text-secondary);
+}
+.erp-ui-button--ghost:hover:not(:disabled) {
+  background: var(--erp-surface-muted);
+}
+.erp-ui-button--sm {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: var(--erp-text-xs);
+}
+.erp-ui-button--lg {
+  min-height: 44px;
+  padding: 11px 18px;
+}
+
+.erp-ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: var(--erp-radius-full);
+  font: 650 var(--erp-text-xs)/1.4 var(--erp-font-sans);
+}
+.erp-ui-badge--neutral {
+  background: var(--erp-surface-muted);
+  color: var(--erp-text-secondary);
+}
+.erp-ui-badge--success {
+  background: var(--erp-success-soft);
+  color: var(--erp-success);
+}
+.erp-ui-badge--warning {
+  background: var(--erp-warning-soft);
+  color: var(--erp-warning);
+}
+.erp-ui-badge--danger {
+  background: var(--erp-danger-soft);
+  color: var(--erp-danger);
+}
+.erp-ui-badge--info {
+  background: var(--erp-info-soft);
+  color: var(--erp-info);
+}
+
+.erp-ui-card {
+  min-width: 0;
+  border: 1px solid var(--erp-border);
+  border-radius: var(--erp-radius-lg);
+  background: var(--erp-card);
+  box-shadow: var(--erp-shadow-sm);
+}
+.erp-ui-card__header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--erp-border);
+}
+.erp-ui-card__content {
+  padding: 20px;
+}
+.erp-ui-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--erp-border);
+}
+
+.erp-ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.erp-ui-field__label {
+  color: var(--erp-text);
+  font: 600 var(--erp-text-sm)/1.5 var(--erp-font-sans);
+}
+.erp-ui-field__required {
+  color: var(--erp-danger);
+}
+.erp-ui-field__hint {
+  color: var(--erp-muted);
+  font-size: var(--erp-text-xs);
+  line-height: 1.6;
+}
+.erp-ui-field__error {
+  color: var(--erp-danger);
+  font-size: var(--erp-text-xs);
+}
+.erp-ui-input,
+.erp-ui-select,
+.erp-ui-textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 11px;
+  border: 1px solid var(--erp-border-strong);
+  border-radius: var(--erp-radius-md);
+  background: var(--erp-surface);
+  color: var(--erp-text);
+  font: 400 var(--erp-text-sm)/1.5 var(--erp-font-sans);
+}
+.erp-ui-input::placeholder,
+.erp-ui-textarea::placeholder {
+  color: var(--erp-muted);
+}
+.erp-ui-input[aria-invalid="true"],
+.erp-ui-select[aria-invalid="true"],
+.erp-ui-textarea[aria-invalid="true"] {
+  border-color: var(--erp-danger);
+}
+.erp-ui-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.erp-ui-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;
+}
+.erp-ui-page-header__copy {
+  min-width: 0;
+}
+.erp-ui-page-header__eyebrow {
+  margin: 0 0 6px;
+  color: var(--erp-muted);
+  font-size: var(--erp-text-xs);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.erp-ui-page-header__title {
+  margin: 0;
+  color: var(--erp-text);
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 750;
+  line-height: 1.25;
+}
+.erp-ui-page-header__description {
+  margin: 7px 0 0;
+  color: var(--erp-muted);
+  font-size: var(--erp-text-sm);
+  line-height: 1.7;
+}
+.erp-ui-page-header__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.erp-ui-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 28px 18px;
+  border: 1px dashed var(--erp-border-strong);
+  border-radius: var(--erp-radius-lg);
+  text-align: center;
+}
+.erp-ui-empty-state__icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 13px;
+  border-radius: var(--erp-radius-lg);
+  background: var(--erp-surface-muted);
+  color: var(--erp-muted);
+}
+.erp-ui-empty-state__title {
+  margin: 0;
+  color: var(--erp-text);
+  font-size: var(--erp-text-base);
+  font-weight: 700;
+}
+.erp-ui-empty-state__description {
+  max-width: 440px;
+  margin: 8px 0 0;
+  color: var(--erp-muted);
+  font-size: var(--erp-text-sm);
+  line-height: 1.7;
+}
+
+.erp-ui-skeleton {
+  min-height: 14px;
+  border-radius: var(--erp-radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--erp-surface-muted),
+    var(--erp-border),
+    var(--erp-surface-muted)
+  );
+  background-size: 200% 100%;
+  animation: erp-ui-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes erp-ui-shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (max-width: 640px) {
+  .erp-ui-page-header {
+    flex-direction: column;
+  }
+  .erp-ui-page-header__actions {
+    width: 100%;
+  }
+  .erp-ui-page-header__actions > * {
+    flex: 1 1 auto;
+  }
+  .erp-ui-card__header,
+  .erp-ui-card__content {
+    padding: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .erp-ui-skeleton {
+    animation: none;
+  }
+  .erp-ui-button {
+    transition: none;
+  }
+}

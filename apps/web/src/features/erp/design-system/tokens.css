@@ -1,0 +1,97 @@
+:root {
+  /* Brand */
+  --erp-primary: #4263eb;
+  --erp-primary-hover: #3451d1;
+  --erp-primary-soft: #edf1ff;
+  --erp-primary-contrast: #ffffff;
+
+  /* Neutral palette */
+  --erp-text: #202939;
+  --erp-text-secondary: #536176;
+  --erp-muted: #8490a3;
+  --erp-border: #e7eaf0;
+  --erp-border-strong: #d5dbe5;
+  --erp-surface: #ffffff;
+  --erp-card: #ffffff;
+  --erp-surface-muted: #f5f6f9;
+  --erp-page: #f7f8fb;
+
+  /* Semantic */
+  --erp-success: #16845b;
+  --erp-success-soft: #e9f7f0;
+  --erp-warning: #b7791f;
+  --erp-warning-soft: #fff7e6;
+  --erp-danger: #c43d4d;
+  --erp-danger-soft: #fff0f1;
+  --erp-info: #2875c7;
+  --erp-info-soft: #edf5ff;
+
+  /* Typography */
+  --erp-font-sans: "Inter", "Noto Sans Bengali",
+    "Nirmala UI", system-ui, sans-serif;
+  --erp-font-bangla: "Noto Sans Bengali",
+    "Nirmala UI", "Vrinda", sans-serif;
+
+  /* Type scale */
+  --erp-text-xs: 0.75rem;
+  --erp-text-sm: 0.875rem;
+  --erp-text-base: 1rem;
+  --erp-text-lg: 1.125rem;
+  --erp-heading-sm: 1.25rem;
+  --erp-heading-md: 1.5rem;
+  --erp-heading-lg: 1.875rem;
+
+  /* Spacing */
+  --erp-space-1: 0.25rem;
+  --erp-space-2: 0.5rem;
+  --erp-space-3: 0.75rem;
+  --erp-space-4: 1rem;
+  --erp-space-5: 1.25rem;
+  --erp-space-6: 1.5rem;
+  --erp-space-8: 2rem;
+  --erp-space-10: 2.5rem;
+
+  /* Radius */
+  --erp-radius-sm: 6px;
+  --erp-radius-md: 9px;
+  --erp-radius-lg: 12px;
+  --erp-radius-xl: 16px;
+  --erp-radius-full: 999px;
+
+  /* Elevation */
+  --erp-shadow-sm: 0 1px 2px rgb(16 24 40 / 5%);
+  --erp-shadow-md: 0 4px 12px rgb(16 24 40 / 7%);
+  --erp-shadow-lg: 0 12px 32px rgb(16 24 40 / 10%);
+
+  /* Layout */
+  --erp-content-width: 1440px;
+  --erp-sidebar-width: 258px;
+  --erp-header-height: 68px;
+
+  /* Motion */
+  --erp-transition-fast: 140ms ease;
+  --erp-transition-normal: 200ms ease;
+
+  /* Focus */
+  --erp-focus-ring: 0 0 0 3px rgb(66 99 235 / 20%);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --erp-text: #e7ecf5;
+  --erp-text-secondary: #b7c1d2;
+  --erp-muted: #9aa8bd;
+  --erp-border: #303b4d;
+  --erp-border-strong: #45536a;
+  --erp-surface: #182231;
+  --erp-card: #1d2939;
+  --erp-surface-muted: #253247;
+  --erp-page: #111a27;
+
+  --erp-primary-soft: #26365f;
+  --erp-success-soft: #173b30;
+  --erp-warning-soft: #45371d;
+  --erp-danger-soft: #48252e;
+  --erp-info-soft: #1c3553;
+}

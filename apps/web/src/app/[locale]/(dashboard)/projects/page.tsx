@@ -1,261 +1,497 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+type ProjectStatus =
+  | 'PLANNING'
+  | 'ACTIVE'
+  | 'ON_HOLD'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 type Project = {
+  id: string;
   name: string;
-  location: string;
-  status: 'Active' | 'On Hold' | 'Completed';
-  land: string;
-  units: string;
-  sales: number;
-  construction: number;
-  value: string;
-  icon: string;
+  nameBn?: string | null;
+  code: string;
+  address?: string | null;
+  status: ProjectStatus;
+  startDate?: string | null;
+  endDate?: string | null;
 };
 
-const projects: Project[] = [
-  {
-    name: 'Green Valley Residency',
-    location: 'Uttara, Dhaka',
-    status: 'Active',
-    land: '12.5 Katha',
-    units: '48 Units',
-    sales: 72,
-    construction: 58,
-    value: '৳ ২৪.৫ Cr',
-    icon: '⌂',
-  },
-  {
-    name: 'Metro Heights',
-    location: 'Mirpur, Dhaka',
-    status: 'Active',
-    land: '8.0 Katha',
-    units: '36 Units',
-    sales: 64,
-    construction: 42,
-    value: '৳ ১৮.৮ Cr',
-    icon: '▥',
-  },
-  {
-    name: 'Lake View Apartments',
-    location: 'Dhanmondi, Dhaka',
-    status: 'On Hold',
-    land: '6.5 Katha',
-    units: '24 Units',
-    sales: 38,
-    construction: 20,
-    value: '৳ ১৪.২ Cr',
-    icon: '⌁',
-  },
-  {
-    name: 'Royal Garden',
-    location: 'Bashundhara, Dhaka',
-    status: 'Completed',
-    land: '10.0 Katha',
-    units: '40 Units',
-    sales: 100,
-    construction: 100,
-    value: '৳ ২৮.১ Cr',
-    icon: '♧',
-  },
-];
-
-const statusTone: Record<Project['status'], string> = {
-  Active: 'success',
-  'On Hold': 'warning',
-  Completed: 'info',
+const statusLabels: Record<ProjectStatus, { en: string; bn: string; tone: string }> = {
+  PLANNING: { en: 'Planning', bn: 'পরিকল্পনাধীন', tone: 'info' },
+  ACTIVE: { en: 'Active', bn: 'চলমান', tone: 'success' },
+  ON_HOLD: { en: 'On Hold', bn: 'স্থগিত', tone: 'warning' },
+  COMPLETED: { en: 'Completed', bn: 'সম্পন্ন', tone: 'info' },
+  CANCELLED: { en: 'Cancelled', bn: 'বাতিল', tone: 'danger' },
 };
+
+// Live records will be loaded from the authenticated organization-scoped API.
+const projects: Project[] = [];
 
 export default function ProjectsPage() {
-  const [activeTab, setActiveTab] = useState('All Projects');
-  const [search, setSearch] = useState('');
+  const pathname = usePathname();
+  const bn = pathname.split('/').filter(Boolean)[0] === 'bn';
 
-  const tabs = ['All Projects', 'Active', 'On Hold', 'Completed'];
+  const [activeTab, setActiveTab] = useState('ALL');
+  const [search, setSearch] = useState('');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [projectNameBn, setProjectNameBn] = useState('');
+  const [projectCode, setProjectCode] = useState('');
+  const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<ProjectStatus>('PLANNING');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const tabs = [
+    { id: 'ALL', en: 'All Projects', bn: 'সব প্রজেক্ট' },
+    { id: 'PLANNING', en: 'Planning', bn: 'পরিকল্পনাধীন' },
+    { id: 'ACTIVE', en: 'Active', bn: 'চলমান' },
+    { id: 'ON_HOLD', en: 'On Hold', bn: 'স্থগিত' },
+    { id: 'COMPLETED', en: 'Completed', bn: 'সম্পন্ন' },
+    { id: 'CANCELLED', en: 'Cancelled', bn: 'বাতিল' },
+  ];
 
   const filteredProjects = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase();
+
     return projects.filter((project) => {
-      const matchesTab =
-        activeTab === 'All Projects' || project.status === activeTab;
-      const query = search.trim().toLowerCase();
+      const matchesTab = activeTab === 'ALL' || project.status === activeTab;
       const matchesSearch =
         !query ||
-        project.name.toLowerCase().includes(query) ||
-        project.location.toLowerCase().includes(query);
-      return matchesTab && matchesSearch;
+        project.name.toLocaleLowerCase().includes(query) ||
+        (project.nameBn || '').toLocaleLowerCase().includes(query) ||
+        project.code.toLocaleLowerCase().includes(query) ||
+        (project.address || '').toLocaleLowerCase().includes(query);
+
+      return matchesTab && Boolean(matchesSearch);
     });
   }, [activeTab, search]);
 
+  function resetForm() {
+    setProjectName('');
+    setProjectNameBn('');
+    setProjectCode('');
+    setAddress('');
+    setDescription('');
+    setStatus('PLANNING');
+    setStartDate('');
+    setEndDate('');
+  }
+
+  function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Persistence is intentionally disabled until authenticated Project API exists.
+  }
+
   return (
     <>
-      <section className="erp-page-heading">
+      <section className="erp-page-heading erp-project-heading">
         <div>
-          <p className="erp-eyebrow">PORTFOLIO · প্রজেক্ট ব্যবস্থাপনা</p>
-          <h1 className="erp-page-title">Projects Portfolio</h1>
+          <div className="erp-project-breadcrumb">
+            {bn ? 'ওয়ার্কস্পেস' : 'WORKSPACE'}
+            <span>/</span>
+            {bn ? 'প্রজেক্ট' : 'PROJECTS'}
+          </div>
+          <p className="erp-eyebrow">
+            {bn ? 'পোর্টফোলিও ব্যবস্থাপনা' : 'PORTFOLIO MANAGEMENT'}
+          </p>
+          <h1 className="erp-page-title">
+            {bn ? 'প্রজেক্ট পোর্টফোলিও' : 'Projects Portfolio'}
+          </h1>
           <p className="erp-page-description">
-            Monitor your real estate developments, project performance and progress.
+            {bn
+              ? 'আপনার প্রতিষ্ঠানের সব রিয়েল এস্টেট প্রকল্প এক জায়গা থেকে পরিচালনা করুন।'
+              : 'Manage your real estate development projects from one central workspace.'}
           </p>
         </div>
-        <button
-          className="erp-button"
-          type="button"
-          onClick={() => alert('Connect this action to the Create Project workflow.')}
-        >
-          + Create Project
-        </button>
+
+        <div className="erp-project-heading-actions">
+          <button
+            className="erp-button erp-project-primary"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+          >
+            <span aria-hidden="true">＋</span>
+            {bn ? 'নতুন প্রজেক্ট তৈরি' : 'Create Project'}
+          </button>
+        </div>
       </section>
 
-      <section className="erp-kpi-grid" aria-label="Portfolio summary">
-        <article className="erp-card erp-kpi-card">
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">Active Projects</span>
-            <span className="erp-kpi-icon teal">▦</span>
-          </div>
-          <div className="erp-kpi-value">০২</div>
-          <div className="erp-kpi-foot">3 projects currently active</div>
-        </article>
-        <article className="erp-card erp-kpi-card">
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">Total Land Area</span>
-            <span className="erp-kpi-icon blue">⌂</span>
-          </div>
-          <div className="erp-kpi-value">৩৭ Katha</div>
-          <div className="erp-kpi-foot">Across all listed projects</div>
-        </article>
-        <article className="erp-card erp-kpi-card">
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">Saleable Units</span>
-            <span className="erp-kpi-icon purple">▥</span>
-          </div>
-          <div className="erp-kpi-value">১৪৮</div>
-          <div className="erp-kpi-foot">Residential & commercial units</div>
-        </article>
-        <article className="erp-card erp-kpi-card">
-          <div className="erp-kpi-top">
-            <span className="erp-kpi-label">Portfolio Value</span>
-            <span className="erp-kpi-icon orange">৳</span>
-          </div>
-          <div className="erp-kpi-value">৳ ৮৫.৬ Cr</div>
-          <div className="erp-kpi-foot">Illustrative project valuation</div>
-        </article>
+      <div className="erp-project-api-banner" role="status">
+        <span className="erp-project-api-icon" aria-hidden="true">i</span>
+        <div>
+          <strong>{bn ? 'ডেটাবেস সংযোগ অপেক্ষমাণ' : 'Project data connection pending'}</strong>
+          <p>
+            {bn
+              ? 'এখনো কোনো বাস্তব প্রজেক্ট লোড করা হয়নি। Authentication ও Project API প্রস্তুত হলে প্রতিষ্ঠানের তথ্য এখানে দেখা যাবে।'
+              : 'No live project records are loaded. Organization data will appear here after authentication and Project API integration.'}
+          </p>
+        </div>
+        <span className="erp-project-api-state">
+          {bn ? 'API অপেক্ষমাণ' : 'API Pending'}
+        </span>
+      </div>
+
+      <section className="erp-project-kpis" aria-label={bn ? 'প্রজেক্ট সারসংক্ষেপ' : 'Project summary'}>
+        {[
+          { label: 'Total Projects', bnLabel: 'মোট প্রজেক্ট', icon: '▤', color: 'teal' },
+          { label: 'Active Projects', bnLabel: 'চলমান প্রজেক্ট', icon: '◷', color: 'blue' },
+          { label: 'In Planning', bnLabel: 'পরিকল্পনাধীন', icon: '⌁', color: 'purple' },
+          { label: 'Completed', bnLabel: 'সম্পন্ন', icon: '✓', color: 'orange' },
+        ].map((item) => (
+          <article className="erp-card erp-kpi-card erp-project-kpi" key={item.label}>
+            <div className="erp-kpi-top">
+              <span className="erp-kpi-label">{bn ? item.bnLabel : item.label}</span>
+              <span className={`erp-kpi-icon ${item.color}`}>{item.icon}</span>
+            </div>
+            <div className="erp-kpi-value">—</div>
+            <div className="erp-kpi-foot">
+              {bn ? 'ডেটা সংযোগের অপেক্ষায়' : 'Awaiting live data'}
+            </div>
+          </article>
+        ))}
       </section>
 
-      <section className="erp-card">
-        <div className="erp-toolbar">
-          <div className="erp-tabs" role="tablist" aria-label="Project status filter">
+      <section className="erp-card erp-project-panel">
+        <div className="erp-project-panel-heading">
+          <div>
+            <h2>{bn ? 'আপনার প্রজেক্টসমূহ' : 'Your Projects'}</h2>
+            <p>
+              {bn
+                ? 'স্ট্যাটাস অনুযায়ী প্রজেক্ট খুঁজুন ও পরিচালনা করুন।'
+                : 'Search, filter and manage your project portfolio.'}
+            </p>
+          </div>
+          <span className="erp-project-record-count">
+            {projects.length} {bn ? 'টি রেকর্ড' : 'records'}
+          </span>
+        </div>
+
+        <div className="erp-project-toolbar">
+          <div
+            className="erp-tabs erp-project-tabs"
+            role="tablist"
+            aria-label={bn ? 'প্রজেক্ট স্ট্যাটাস ফিল্টার' : 'Project status filter'}
+          >
             {tabs.map((tab) => (
               <button
-                key={tab}
+                key={tab.id}
                 type="button"
                 role="tab"
-                aria-selected={activeTab === tab}
-                className={`erp-tab ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
+                aria-selected={activeTab === tab.id}
+                className={`erp-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
               >
-                {tab}
-                {tab === 'All Projects' && (
-                  <span style={{ marginLeft: 5 }}>({projects.length})</span>
+                {bn ? tab.bn : tab.en}
+                {tab.id === 'ALL' && (
+                  <span className="erp-project-tab-count">{projects.length}</span>
                 )}
               </button>
             ))}
           </div>
-          <label className="erp-search">
+
+          <label className="erp-search erp-project-search">
             <span aria-hidden="true">⌕</span>
             <input
               type="search"
-              placeholder="Search projects or location..."
+              placeholder={bn ? 'নাম, কোড বা ঠিকানা দিয়ে খুঁজুন' : 'Search name, code or location'}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </label>
         </div>
 
-        <div style={{ padding: 17 }}>
+        <div className="erp-project-list-content">
           {filteredProjects.length === 0 ? (
-            <div className="erp-empty-state">
-              No projects found. Try another search or status filter.
+            <div className="erp-project-empty erp-project-empty-modern">
+              <div className="erp-project-empty-art" aria-hidden="true">
+                <span>⌂</span>
+                <i />
+                <i />
+              </div>
+              <span className="erp-project-empty-label">
+                {search.trim()
+                  ? (bn ? 'কোনো ফলাফল পাওয়া যায়নি' : 'NO MATCHING RESULTS')
+                  : (bn ? 'প্রজেক্ট পোর্টফোলিও' : 'PROJECT PORTFOLIO')}
+              </span>
+              <h2>
+                {search.trim()
+                  ? (bn ? 'আপনার অনুসন্ধানের সঙ্গে মিল নেই' : 'No matching projects found')
+                  : (bn ? 'আপনার প্রথম প্রজেক্ট তৈরি করুন' : 'Start with your first project')}
+              </h2>
+              <p>
+                {search.trim()
+                  ? (bn
+                    ? 'অন্য নাম, প্রজেক্ট কোড অথবা লোকেশন দিয়ে আবার চেষ্টা করুন।'
+                    : 'Try another project name, code or location.')
+                  : (bn
+                    ? 'প্রজেক্ট তৈরি হলে জমি, প্রপার্টি, নির্মাণ, বিক্রয় ও হিসাব একই জায়গা থেকে পরিচালনা করতে পারবেন।'
+                    : 'Once created, you can manage land, properties, construction, sales and project accounts from one workspace.')}
+              </p>
+              {search.trim() ? (
+                <button
+                  className="erp-button erp-button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setActiveTab('ALL');
+                  }}
+                >
+                  {bn ? 'ফিল্টার পরিষ্কার করুন' : 'Clear filters'}
+                </button>
+              ) : (
+                <button
+                  className="erp-button erp-project-primary"
+                  type="button"
+                  onClick={() => setCreateOpen(true)}
+                >
+                  ＋ {bn ? 'প্রথম প্রজেক্ট তৈরি করুন' : 'Create your first project'}
+                </button>
+              )}
             </div>
           ) : (
             <div className="erp-project-grid">
-              {filteredProjects.map((project) => (
-                <article className="erp-card erp-project-card" key={project.name}>
-                  <div className="erp-project-top">
-                    <span className="erp-project-avatar">{project.icon}</span>
-                    <div className="erp-project-title-wrap">
-                      <h2 className="erp-project-title">{project.name}</h2>
-                      <p className="erp-project-location">⌖ {project.location}</p>
-                    </div>
-                    <span className={`erp-status ${statusTone[project.status]}`}>
-                      {project.status}
-                    </span>
-                  </div>
+              {filteredProjects.map((project) => {
+                const statusInfo = statusLabels[project.status];
 
-                  <div className="erp-project-meta">
-                    <div>
-                      <small>Land Area</small>
-                      <strong>{project.land}</strong>
+                return (
+                  <article className="erp-card erp-project-card" key={project.id}>
+                    <div className="erp-project-top">
+                      <span className="erp-project-avatar">⌂</span>
+                      <div className="erp-project-title-wrap">
+                        <h2 className="erp-project-title">
+                          {bn && project.nameBn ? project.nameBn : project.name}
+                        </h2>
+                        <p className="erp-project-location">
+                          {project.address || (bn ? 'ঠিকানা দেওয়া হয়নি' : 'No address provided')}
+                        </p>
+                      </div>
+                      <span className={`erp-status ${statusInfo.tone}`}>
+                        {bn ? statusInfo.bn : statusInfo.en}
+                      </span>
                     </div>
-                    <div>
-                      <small>Saleable Units</small>
-                      <strong>{project.units}</strong>
+                    <div className="erp-project-meta">
+                      <div>
+                        <small>{bn ? 'প্রজেক্ট কোড' : 'Project Code'}</small>
+                        <strong>{project.code}</strong>
+                      </div>
+                      <div>
+                        <small>{bn ? 'শুরুর তারিখ' : 'Start Date'}</small>
+                        <strong>{project.startDate || '—'}</strong>
+                      </div>
+                      <div>
+                        <small>{bn ? 'শেষের তারিখ' : 'End Date'}</small>
+                        <strong>{project.endDate || '—'}</strong>
+                      </div>
                     </div>
-                    <div>
-                      <small>Project Value</small>
-                      <strong>{project.value}</strong>
+                    <div className="erp-project-card-footer">
+                      <Link
+                        className="erp-project-details-link"
+                        href={`/${bn ? 'bn' : 'en'}/projects/${encodeURIComponent(project.id)}`}
+                      >
+                        {bn ? 'বিস্তারিত দেখুন' : 'View Details'}
+                        <span aria-hidden="true">→</span>
+                      </Link>
                     </div>
-                  </div>
-
-                  <div className="erp-progress-heading">
-                    <span>Sales Progress</span>
-                    <strong>{project.sales}%</strong>
-                  </div>
-                  <div
-                    className="erp-progress-track"
-                    role="progressbar"
-                    aria-valuenow={project.sales}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`${project.name} sales progress`}
-                  >
-                    <div
-                      className="erp-progress-fill"
-                      style={{ width: `${project.sales}%` }}
-                    />
-                  </div>
-
-                  <div className="erp-progress-heading">
-                    <span>Construction Progress</span>
-                    <strong>{project.construction}%</strong>
-                  </div>
-                  <div
-                    className="erp-progress-track"
-                    role="progressbar"
-                    aria-valuenow={project.construction}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label={`${project.name} construction progress`}
-                  >
-                    <div
-                      className="erp-progress-fill"
-                      style={{
-                        width: `${project.construction}%`,
-                        background: '#6d8fd6',
-                      }}
-                    />
-                  </div>
-
-                  <div className="erp-project-bottom">
-                    <small>Project performance overview</small>
-                    <a className="erp-text-link" href="../projects">
-                      View details →
-                    </a>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
       </section>
+
+      {createOpen && (
+        <div
+          className="erp-modal-backdrop erp-project-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setCreateOpen(false);
+          }}
+        >
+          <section
+            className="erp-modal erp-project-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-project-title"
+          >
+            <div className="erp-modal-header">
+              <div>
+                <p className="erp-eyebrow">
+                  {bn ? 'প্রজেক্ট ব্যবস্থাপনা' : 'PROJECT MANAGEMENT'}
+                </p>
+                <h2 id="create-project-title">
+                  {bn ? 'নতুন প্রজেক্ট তৈরি করুন' : 'Create New Project'}
+                </h2>
+                <p>
+                  {bn
+                    ? 'প্রজেক্টের প্রাথমিক তথ্য দিয়ে শুরু করুন।'
+                    : 'Start by entering the basic details of your project.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="erp-modal-close"
+                onClick={() => setCreateOpen(false)}
+                aria-label={bn ? 'বন্ধ করুন' : 'Close'}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSubmit}>
+              <div className="erp-project-form-section">
+                <div className="erp-project-form-section-title">
+                  <span>01</span>
+                  <div>
+                    <h3>{bn ? 'প্রাথমিক তথ্য' : 'Basic Information'}</h3>
+                    <p>{bn ? 'প্রজেক্টের পরিচিতি ও ইউনিক কোড' : 'Project identity and unique reference'}</p>
+                  </div>
+                </div>
+
+                <div className="erp-form-grid">
+                  <label className="erp-form-field">
+                    <span>{bn ? 'প্রজেক্টের নাম (English) *' : 'Project Name (English) *'}</span>
+                    <input
+                      required
+                      maxLength={150}
+                      value={projectName}
+                      onChange={(e) => setProjectName(e.target.value)}
+                      placeholder="e.g. Green Valley Residency"
+                    />
+                  </label>
+
+                  <label className="erp-form-field">
+                    <span>{bn ? 'প্রজেক্টের নাম (বাংলা)' : 'Project Name (Bangla)'}</span>
+                    <input
+                      maxLength={150}
+                      value={projectNameBn}
+                      onChange={(e) => setProjectNameBn(e.target.value)}
+                      placeholder="প্রজেক্টের বাংলা নাম"
+                    />
+                  </label>
+
+                  <label className="erp-form-field">
+                    <span>{bn ? 'প্রজেক্ট কোড *' : 'Project Code *'}</span>
+                    <input
+                      required
+                      maxLength={40}
+                      value={projectCode}
+                      onChange={(e) => setProjectCode(e.target.value.toUpperCase().replace(/\s+/g, '-'))}
+                      placeholder="e.g. GVR-001"
+                    />
+                    <small>{bn ? 'প্রতিটি প্রজেক্টের কোড আলাদা হতে হবে।' : 'Each project must have a unique code.'}</small>
+                  </label>
+
+                  <label className="erp-form-field">
+                    <span>{bn ? 'প্রাথমিক অবস্থা' : 'Initial Status'}</span>
+                    <select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)}>
+                      {(['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED'] as ProjectStatus[]).map((value) => (
+                        <option key={value} value={value}>
+                          {bn ? statusLabels[value].bn : statusLabels[value].en}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="erp-project-form-section">
+                <div className="erp-project-form-section-title">
+                  <span>02</span>
+                  <div>
+                    <h3>{bn ? 'লোকেশন ও সময়সীমা' : 'Location & Timeline'}</h3>
+                    <p>{bn ? 'প্রজেক্টের অবস্থান ও পরিকল্পিত সময়' : 'Where and when the project will take place'}</p>
+                  </div>
+                </div>
+
+                <div className="erp-form-grid">
+                  <label className="erp-form-field erp-form-field-full">
+                    <span>{bn ? 'প্রজেক্টের ঠিকানা / লোকেশন' : 'Project Address / Location'}</span>
+                    <input
+                      maxLength={300}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder={bn ? 'এলাকা, থানা, জেলা' : 'Area, upazila, district'}
+                    />
+                  </label>
+
+                  <label className="erp-form-field">
+                    <span>{bn ? 'শুরুর তারিখ' : 'Start Date'}</span>
+                    <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                  </label>
+
+                  <label className="erp-form-field">
+                    <span>{bn ? 'সম্ভাব্য শেষের তারিখ' : 'Expected End Date'}</span>
+                    <input
+                      type="date"
+                      min={startDate || undefined}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="erp-project-form-section">
+                <div className="erp-project-form-section-title">
+                  <span>03</span>
+                  <div>
+                    <h3>{bn ? 'প্রজেক্টের বিবরণ' : 'Project Description'}</h3>
+                    <p>{bn ? 'প্রজেক্ট সম্পর্কে সংক্ষিপ্ত তথ্য' : 'Additional context about this project'}</p>
+                  </div>
+                </div>
+
+                <div className="erp-form-grid">
+                  <label className="erp-form-field erp-form-field-full">
+                    <span>{bn ? 'বিবরণ' : 'Description'}</span>
+                    <textarea
+                      rows={4}
+                      maxLength={2000}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder={bn ? 'প্রজেক্ট সম্পর্কে সংক্ষিপ্ত বিবরণ লিখুন...' : 'Write a brief project description...'}
+                    />
+                    <small>{description.length}/2000</small>
+                  </label>
+                </div>
+              </div>
+
+              <div className="erp-form-api-notice erp-project-save-notice">
+                <strong>{bn ? 'সংরক্ষণ এখনো চালু হয়নি' : 'Project creation is not enabled yet'}</strong>
+                <span>
+                  {bn
+                    ? 'Authentication ও নিরাপদ Project API তৈরি হলে এই ফর্মের তথ্য সংরক্ষণ করা যাবে। এখন কোনো তথ্য database-এ যাচ্ছে না।'
+                    : 'This form will persist data after authentication and the secure Project API are implemented. Nothing is being saved to the database yet.'}
+                </span>
+              </div>
+
+              <div className="erp-modal-actions">
+                <button
+                  className="erp-button erp-button-secondary"
+                  type="button"
+                  onClick={() => {
+                    setCreateOpen(false);
+                    resetForm();
+                  }}
+                >
+                  {bn ? 'বাতিল করুন' : 'Cancel'}
+                </button>
+                <button className="erp-button" type="submit" disabled>
+                  {bn ? 'প্রজেক্ট সংরক্ষণ (শীঘ্রই)' : 'Save Project (Coming Soon)'}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </>
   );
 }

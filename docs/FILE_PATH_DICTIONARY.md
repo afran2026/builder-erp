@@ -362,3 +362,18 @@ A listed directory or module does not mean its business functionality
 has already been implemented.
 
 Implementation status must be tracked separately.
+
+## Design System Ownership
+
+| Path | Responsibility |
+|---|---|
+| `apps/web/src/features/erp/design-system/tokens.css` | Central design tokens |
+| `apps/web/src/features/erp/design-system/ui.css` | Shared UI primitive styles |
+| `apps/web/src/components/ui/button.tsx` | Button primitive |
+| `apps/web/src/components/ui/badge.tsx` | Status and category badges |
+| `apps/web/src/components/ui/card.tsx` | Card primitives |
+| `apps/web/src/components/ui/field.tsx` | Form fields and controls |
+| `apps/web/src/components/ui/empty-state.tsx` | Empty states |
+| `apps/web/src/components/ui/page-header.tsx` | Page heading layout |
+| `apps/web/src/components/ui/index.ts` | Public UI exports |
+| `docs/architecture/DESIGN_SYSTEM.md` | Design-system specification |

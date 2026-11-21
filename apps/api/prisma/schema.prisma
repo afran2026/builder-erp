@@ -5,8 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -23,57 +23,289 @@ enum FinancialYearStatus {
   CLOSED
 }
 
-model Organization {
-  id          String       @id @default(uuid()) @db.Uuid
-  name        String
-  nameBn      String?
-  code        String       @unique
-  currency    String       @default("BDT")
-  timezone    String       @default("Asia/Dhaka")
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
 
-  branches    Branch[]
-  departments Department[]
-  projects    Project[]
-  financialYears FinancialYear[]
+enum LandParcelStatus {
+  AVAILABLE
+  UNDER_NEGOTIATION
+  ACQUIRED
+  ALLOCATED
+  DISPUTED
+}
+
+enum LandAcquisitionType {
+  PURCHASE
+  JOINT_VENTURE
+}
+
+enum LandAcquisitionStatus {
+  DRAFT
+  NEGOTIATION
+  AGREEMENT
+  REGISTERED
+  CANCELLED
+}
+
+enum JointVentureStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  TERMINATED
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  nameBn    String?
+  code      String   @unique
+  currency  String   @default("BDT")
+  timezone  String   @default("Asia/Dhaka")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches         Branch[]
+  departments      Department[]
+  projects         Project[]
+  financialYears   FinancialYear[]
+  users            User[]
+  roles            Role[]
+  landParcels      LandParcel[]
+  landAcquisitions LandAcquisition[]
+  jointVentures    JointVenture[]
+  customers        Customer[]
+  leads            Lead[]
+  salesTeams       SalesTeam[]
+  salesAgents      SalesAgent[]
+  properties       Property[]
+  salesQuotations  SalesQuotation[]
+  bookings         Booking[]
+  payments         Payment[]
+
+  vendors             Vendor[]
+  materialCategories  MaterialCategory[]
+  inventoryItems      InventoryItem[]
+  warehouses          Warehouse[]
+  procurementRequests ProcurementRequest[]
+  purchaseOrders      PurchaseOrder[]
+
+  employees        Employee[]
+  leaveTypes       LeaveType[]
+  leaveRequests    LeaveRequest[]
+  salaryStructures SalaryStructure[]
+  payrolls         Payroll[]
+  salaryPayments   SalaryPayment[]
+
+  investors             Investor[]
+  investments           Investment[]
+  investorContributions InvestorContribution[]
+  profitDistributions   ProfitDistribution[]
+  investorWithdrawals   InvestorWithdrawal[]
+  investmentAgreements  InvestmentAgreement[]
+
+  chartOfAccounts     ChartOfAccount[]
+  accountingPeriods   AccountingPeriod[]
+  journalEntries      JournalEntry[]
+  costCenters         CostCenter[]
+  bankAccounts        BankAccount[]
+  bankReconciliations BankReconciliation[]
+  bankTransactions    BankTransaction[]
+  expenses            Expense[]
+  receipts            Receipt[]
+  projectBudgets      ProjectBudget[]
+  projectBudgetLines  ProjectBudgetLine[]
+
+  approvalWorkflows       ApprovalWorkflow[]
+  approvalRequests        ApprovalRequest[]
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]
+  approvalActions         ApprovalAction[]
+  approvalSteps           ApprovalStep[]
+
+  organizationSettings OrganizationSetting[]
+  moduleSettings       ModuleSetting[]
+  sequenceCounters     SequenceCounter[]
+  documentFolders      DocumentFolder[]
+  documents            Document[]
+  fileAttachments      FileAttachment[]
 
   @@map("organizations")
 }
 
 model Branch {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
   name           String
   code           String
   address        String?
   phone          String?
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  users        User[]
+
+  employees Employee[]
 
   @@unique([organizationId, code])
+  @@unique([id, organizationId])
   @@index([organizationId])
   @@map("branches")
 }
 
 model Department {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
   name           String
   code           String
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  users        User[]
+
+  employees Employee[]
 
   @@unique([organizationId, code])
+  @@unique([id, organizationId])
   @@index([organizationId])
   @@map("departments")
+}
+
+model User {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String     @db.Uuid
+  branchId       String?    @db.Uuid
+  departmentId   String?    @db.Uuid
+  fullName       String
+  fullNameBn     String?
+  email          String
+  phone          String?
+  passwordHash   String
+  status         UserStatus @default(ACTIVE)
+  isSuperAdmin   Boolean    @default(false)
+  lastLoginAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  branch       Branch?      @relation(fields: [branchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  department   Department?  @relation(fields: [departmentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  userRoles    UserRole[]
+  auditLogs    AuditLog[]
+
+  taskAssignments      TaskAssignment[]
+  dailyProgressReports DailyProgressReport[] @relation("DailyReportSubmitter")
+  siteInspections      SiteInspection[]      @relation("SiteInspectionInspector")
+  reportedSiteIssues   SiteIssue[]           @relation("SiteIssueReporter")
+
+  requestedProcurements   ProcurementRequest[] @relation("ProcurementRequester")
+  createdPurchaseOrders   PurchaseOrder[]      @relation("PurchaseOrderCreator")
+  receivedGoodsReceipts   GoodsReceipt[]       @relation("GoodsReceiptReceiver")
+  recordedStockMovements  StockMovement[]      @relation("StockMovementRecorder")
+  createdStockAdjustments StockAdjustment[]    @relation("StockAdjustmentCreator")
+
+  employee               Employee?       @relation("UserEmployee")
+  reviewedLeaveRequests  LeaveRequest[]  @relation("LeaveReviewer")
+  recordedSalaryPayments SalaryPayment[] @relation("SalaryPaymentRecorder")
+
+  recordedInvestorContributions InvestorContribution[] @relation("InvestorContributionRecorder")
+  recordedProfitDistributions   ProfitDistribution[]   @relation("ProfitDistributionRecorder")
+  recordedInvestorWithdrawals   InvestorWithdrawal[]   @relation("InvestorWithdrawalRecorder")
+
+  createdJournalEntries  JournalEntry[]       @relation("JournalCreator")
+  approvedJournalEntries JournalEntry[]       @relation("JournalApprover")
+  recordedExpenses       Expense[]            @relation("ExpenseRecorder")
+  recordedReceipts       Receipt[]            @relation("ReceiptRecorder")
+  bankReconciliations    BankReconciliation[] @relation("BankReconciliationRecorder")
+
+  assignedApprovalSteps    ApprovalStep[]          @relation("ApprovalStepAssignee")
+  approvalRequestsCreated  ApprovalRequest[]       @relation("ApprovalRequester")
+  approvalActions          ApprovalAction[]        @relation("ApprovalActionActor")
+  delegatedApprovalActions ApprovalAction[]        @relation("ApprovalActionDelegate")
+  notifications            Notification[]
+  notificationPreference   NotificationPreference?
+
+  createdDocumentFolders   DocumentFolder[]  @relation("DocumentFolderCreator")
+  createdDocuments         Document[]        @relation("DocumentCreator")
+  uploadedDocumentVersions DocumentVersion[] @relation("DocumentVersionUploader")
+  createdFileAttachments   FileAttachment[]  @relation("FileAttachmentCreator")
+
+  @@unique([organizationId, email])
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+  @@index([branchId])
+  @@index([departmentId])
+  @@map("users")
+}
+
+model Role {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  nameBn         String?
+  code           String
+  description    String?
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userRoles    UserRole[]
+  permissions  RolePermission[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  code        String   @unique
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model UserRole {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  userId         String   @db.Uuid
+  roleId         String   @db.Uuid
+  assignedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  role Role @relation(fields: [roleId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([organizationId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String @id @default(uuid()) @db.Uuid
+  roleId       String @db.Uuid
+  permissionId String @db.Uuid
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
 }
 
 model Project {
@@ -90,11 +322,156 @@ model Project {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  landParcels     LandParcel[]
+  acquisitions    LandAcquisition[]
+  jointVentures   JointVenture[]
+  leads           Lead[]
+  properties      Property[]
+  salesQuotations SalesQuotation[]
+  bookings        Booking[]
+
+  constructionPhases    ConstructionPhase[]
+  workPackages          WorkPackage[]
+  constructionTasks     ConstructionTask[]
+  dailyProgressReports  DailyProgressReport[]
+  siteInspections       SiteInspection[]
+  siteIssues            SiteIssue[]
+  constructionDocuments ConstructionDocument[]
+
+  procurementRequests ProcurementRequest[]
+  purchaseOrders      PurchaseOrder[]
+  warehouses          Warehouse[]
+
+  payrollItems PayrollItem[]
+
+  investments           Investment[]
+  investorContributions InvestorContribution[]
+  profitDistributions   ProfitDistribution[]
+  investorWithdrawals   InvestorWithdrawal[]
+  investmentAgreements  InvestmentAgreement[]
+
+  costCenters    CostCenter[]
+  journalLines   JournalLine[]
+  expenses       Expense[]
+  receipts       Receipt[]
+  projectBudgets ProjectBudget[]
 
   @@unique([organizationId, code])
+  @@unique([id, organizationId])
   @@index([organizationId, status])
   @@map("projects")
+}
+
+model LandParcel {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  projectId      String?          @db.Uuid
+  parcelCode     String
+  district       String
+  upazila        String?
+  mouza          String?
+  jlNumber       String?
+  khatianNumber  String?
+  dagNumber      String?
+  area           Decimal          @db.Decimal(18, 4)
+  areaUnit       String           @default("DECIMAL")
+  address        String?
+  status         LandParcelStatus @default(AVAILABLE)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?                @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  acquisitions LandAcquisitionParcel[]
+
+  @@unique([organizationId, parcelCode])
+  @@index([organizationId, status])
+  @@index([projectId])
+  @@index([district, upazila, mouza])
+  @@map("land_parcels")
+}
+
+model LandAcquisition {
+  id               String                @id @default(uuid()) @db.Uuid
+  organizationId   String                @db.Uuid
+  projectId        String                @db.Uuid
+  referenceNo      String
+  acquisitionType  LandAcquisitionType
+  status           LandAcquisitionStatus @default(DRAFT)
+  agreementDate    DateTime?             @db.Date
+  registrationDate DateTime?             @db.Date
+  totalValue       Decimal               @default(0) @db.Decimal(18, 2)
+  currency         String                @default("BDT")
+  notes            String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project                 @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  parcels      LandAcquisitionParcel[]
+
+  @@unique([organizationId, referenceNo])
+  @@index([projectId, status])
+  @@index([organizationId, acquisitionType])
+  @@map("land_acquisitions")
+}
+
+model LandAcquisitionParcel {
+  id                String   @id @default(uuid()) @db.Uuid
+  landAcquisitionId String   @db.Uuid
+  landParcelId      String   @db.Uuid
+  agreedValue       Decimal? @db.Decimal(18, 2)
+  createdAt         DateTime @default(now())
+
+  acquisition LandAcquisition @relation(fields: [landAcquisitionId], references: [id], onDelete: Cascade)
+  parcel      LandParcel      @relation(fields: [landParcelId], references: [id], onDelete: Restrict)
+
+  @@unique([landAcquisitionId, landParcelId])
+  @@index([landParcelId])
+  @@map("land_acquisition_parcels")
+}
+
+model JointVenture {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @db.Uuid
+  projectId      String             @db.Uuid
+  referenceNo    String
+  agreementDate  DateTime?          @db.Date
+  status         JointVentureStatus @default(DRAFT)
+  companyShare   Decimal?           @db.Decimal(7, 4)
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  partners     JointVenturePartner[]
+
+  @@unique([organizationId, referenceNo])
+  @@index([projectId, status])
+  @@map("joint_ventures")
+}
+
+model JointVenturePartner {
+  id               String   @id @default(uuid()) @db.Uuid
+  jointVentureId   String   @db.Uuid
+  partnerName      String
+  partnerNameBn    String?
+  phone            String?
+  address          String?
+  sharePercentage  Decimal  @db.Decimal(7, 4)
+  landContribution Decimal? @db.Decimal(18, 4)
+  cashContribution Decimal? @db.Decimal(18, 2)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  jointVenture JointVenture @relation(fields: [jointVentureId], references: [id], onDelete: Cascade)
+
+  @@index([jointVentureId])
+  @@map("joint_venture_partners")
 }
 
 model FinancialYear {
@@ -109,26 +486,2316 @@ model FinancialYear {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
+  accountingPeriods AccountingPeriod[]
+  projectBudgets    ProjectBudget[]
+
   @@unique([organizationId, name])
+  @@unique([id, organizationId])
   @@index([organizationId, status])
   @@map("financial_years")
 }
 
 model AuditLog {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String?  @db.Uuid
-  action       String
-  entity       String
-  entityId     String?
-  projectId    String?  @db.Uuid
-  oldValues    Json?
-  newValues    Json?
-  ipAddress    String?
-  userAgent    String?
-  createdAt    DateTime @default(now())
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  action    String
+  entity    String
+  entityId  String?
+  projectId String?  @db.Uuid
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId])
   @@index([projectId, createdAt])
   @@index([userId, createdAt])
   @@map("audit_logs")
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  CONVERTED
+  LOST
+}
+
+enum LeadSource {
+  WALK_IN
+  PHONE
+  WEBSITE
+  FACEBOOK
+  REFERRAL
+  OTHER
+}
+
+enum LeadActivityType {
+  CALL
+  MEETING
+  EMAIL
+  NOTE
+  WHATSAPP
+  SITE_VISIT
+}
+
+enum PropertyType {
+  FLAT
+  PLOT
+  SHOP
+  PARKING
+  OFFICE
+}
+
+enum PropertyStatus {
+  DRAFT
+  AVAILABLE
+  RESERVED
+  BOOKED
+  SOLD
+  BLOCKED
+  UNDER_CONSTRUCTION
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum BookingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  DEFAULTED
+}
+
+enum InstallmentFrequency {
+  MONTHLY
+  QUARTERLY
+  HALF_YEARLY
+  YEARLY
+  CUSTOM
+}
+
+enum InstallmentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  MOBILE_BANKING
+  CARD
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  REVERSED
+}
+
+enum AgreementStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  SIGNED
+  CANCELLED
+}
+
+model Customer {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  customerCode   String
+  type           CustomerType @default(INDIVIDUAL)
+  fullName       String
+  fullNameBn     String?
+  companyName    String?
+  email          String?
+  phone          String
+  alternatePhone String?
+  nationalId     String?
+  passportNo     String?
+  dateOfBirth    DateTime?    @db.Date
+  notes          String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  addresses      CustomerAddress[]
+  convertedLeads Lead[]            @relation("ConvertedLeadCustomer")
+  quotations     SalesQuotation[]
+  bookings       Booking[]
+  payments       Payment[]
+
+  @@unique([organizationId, customerCode])
+  @@index([organizationId, phone])
+  @@index([organizationId, email])
+  @@index([organizationId, fullName])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id          String   @id @default(uuid()) @db.Uuid
+  customerId  String   @db.Uuid
+  label       String?
+  addressLine String
+  district    String?
+  upazila     String?
+  postalCode  String?
+  country     String   @default("Bangladesh")
+  isPrimary   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("customer_addresses")
+}
+
+model SalesTeam {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  code           String
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  agents       SalesAgent[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive])
+  @@map("sales_teams")
+}
+
+model SalesAgent {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  teamId         String?  @db.Uuid
+  agentCode      String
+  fullName       String
+  phone          String?
+  email          String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  team         SalesTeam?   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  leads        Lead[]
+
+  @@unique([organizationId, agentCode])
+  @@index([teamId])
+  @@map("sales_agents")
+}
+
+model Lead {
+  id                  String        @id @default(uuid()) @db.Uuid
+  organizationId      String        @db.Uuid
+  projectId           String?       @db.Uuid
+  assignedAgentId     String?       @db.Uuid
+  convertedCustomerId String?       @db.Uuid
+  leadNo              String
+  fullName            String
+  phone               String
+  email               String?
+  source              LeadSource    @default(OTHER)
+  status              LeadStatus    @default(NEW)
+  interestedType      PropertyType?
+  budgetMin           Decimal?      @db.Decimal(18, 2)
+  budgetMax           Decimal?      @db.Decimal(18, 2)
+  notes               String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  agent        SalesAgent?    @relation(fields: [assignedAgentId], references: [id], onDelete: SetNull)
+  customer     Customer?      @relation("ConvertedLeadCustomer", fields: [convertedCustomerId], references: [id], onDelete: SetNull)
+  activities   LeadActivity[]
+
+  @@unique([organizationId, leadNo])
+  @@index([organizationId, status, createdAt])
+  @@index([assignedAgentId, status])
+  @@index([phone])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id           String           @id @default(uuid()) @db.Uuid
+  leadId       String           @db.Uuid
+  activityType LeadActivityType
+  subject      String?
+  description  String?
+  scheduledAt  DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime         @default(now())
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@map("lead_activities")
+}
+
+model Property {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  projectId      String         @db.Uuid
+  propertyCode   String
+  type           PropertyType
+  status         PropertyStatus @default(DRAFT)
+  buildingName   String?
+  floor          String?
+  unitNo         String?
+  bedrooms       Int?
+  bathrooms      Int?
+  area           Decimal        @db.Decimal(18, 4)
+  areaUnit       String         @default("SQ_FT")
+  facing         String?
+  description    String?
+  basePrice      Decimal        @db.Decimal(18, 2)
+  currency       String         @default("BDT")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  prices         PropertyPrice[]
+  quotationItems SalesQuotationItem[]
+  bookings       Booking[]
+
+  constructionDocuments ConstructionDocument[]
+
+  @@unique([organizationId, propertyCode])
+  @@unique([id, projectId])
+  @@index([projectId, type, status])
+  @@index([organizationId, status])
+  @@map("properties")
+}
+
+model PropertyPrice {
+  id            String    @id @default(uuid()) @db.Uuid
+  propertyId    String    @db.Uuid
+  price         Decimal   @db.Decimal(18, 2)
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  reason        String?
+  createdAt     DateTime  @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, effectiveFrom])
+  @@map("property_prices")
+}
+
+model SalesQuotation {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  customerId     String          @db.Uuid
+  projectId      String?         @db.Uuid
+  quotationNo    String
+  status         QuotationStatus @default(DRAFT)
+  issueDate      DateTime        @db.Date
+  validUntil     DateTime?       @db.Date
+  subtotal       Decimal         @default(0) @db.Decimal(18, 2)
+  discountAmount Decimal         @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal         @default(0) @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer     Customer             @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  project      Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  items        SalesQuotationItem[]
+  booking      Booking?
+
+  @@unique([organizationId, quotationNo])
+  @@index([customerId, status])
+  @@index([projectId, issueDate])
+  @@map("sales_quotations")
+}
+
+model SalesQuotationItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  quotationId    String   @db.Uuid
+  propertyId     String   @db.Uuid
+  unitPrice      Decimal  @db.Decimal(18, 2)
+  discountAmount Decimal  @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal  @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  quotation SalesQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  property  Property       @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+
+  @@index([quotationId])
+  @@index([propertyId])
+  @@map("sales_quotation_items")
+}
+
+model Booking {
+  id                String        @id @default(uuid()) @db.Uuid
+  organizationId    String        @db.Uuid
+  projectId         String        @db.Uuid
+  propertyId        String        @db.Uuid
+  customerId        String        @db.Uuid
+  quotationId       String?       @unique @db.Uuid
+  bookingNo         String
+  status            BookingStatus @default(DRAFT)
+  bookingDate       DateTime      @db.Date
+  agreedPrice       Decimal       @db.Decimal(18, 2)
+  bookingAmount     Decimal       @default(0) @db.Decimal(18, 2)
+  downPaymentAmount Decimal       @default(0) @db.Decimal(18, 2)
+  notes             String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  property        Property         @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  customer        Customer         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  quotation       SalesQuotation?  @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  installmentPlan InstallmentPlan?
+  agreement       Agreement?
+  payments        Payment[]
+
+  @@unique([organizationId, bookingNo])
+  @@index([propertyId, status])
+  @@index([customerId, bookingDate])
+  @@index([projectId, status])
+  @@map("bookings")
+}
+
+model InstallmentPlan {
+  id               String               @id @default(uuid()) @db.Uuid
+  bookingId        String               @unique @db.Uuid
+  frequency        InstallmentFrequency @default(MONTHLY)
+  installmentCount Int
+  totalAmount      Decimal              @db.Decimal(18, 2)
+  startDate        DateTime             @db.Date
+  endDate          DateTime?            @db.Date
+  autoGenerate     Boolean              @default(false)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  booking      Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  installments Installment[]
+
+  @@map("installment_plans")
+}
+
+model Installment {
+  id            String            @id @default(uuid()) @db.Uuid
+  planId        String            @db.Uuid
+  installmentNo Int
+  dueDate       DateTime          @db.Date
+  amount        Decimal           @db.Decimal(18, 2)
+  paidAmount    Decimal           @default(0) @db.Decimal(18, 2)
+  status        InstallmentStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  plan        InstallmentPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  allocations PaymentAllocation[]
+
+  @@unique([planId, installmentNo])
+  @@index([status, dueDate])
+  @@map("installments")
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  customerId     String        @db.Uuid
+  bookingId      String?       @db.Uuid
+  receiptNo      String
+  amount         Decimal       @db.Decimal(18, 2)
+  method         PaymentMethod
+  status         PaymentStatus @default(PENDING)
+  receivedAt     DateTime      @default(now())
+  transactionRef String?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  customer     Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  booking      Booking?            @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  allocations  PaymentAllocation[]
+
+  @@unique([organizationId, receiptNo])
+  @@index([customerId, receivedAt])
+  @@index([bookingId, status])
+  @@index([organizationId, receivedAt])
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id            String   @id @default(uuid()) @db.Uuid
+  paymentId     String   @db.Uuid
+  installmentId String   @db.Uuid
+  amount        Decimal  @db.Decimal(18, 2)
+  createdAt     DateTime @default(now())
+
+  payment     Payment     @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  installment Installment @relation(fields: [installmentId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, installmentId])
+  @@index([installmentId])
+  @@map("payment_allocations")
+}
+
+model Agreement {
+  id          String          @id @default(uuid()) @db.Uuid
+  bookingId   String          @unique @db.Uuid
+  agreementNo String
+  status      AgreementStatus @default(DRAFT)
+  signedDate  DateTime?       @db.Date
+  fileUrl     String?
+  terms       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@map("agreements")
+}
+
+enum ConstructionPhaseStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum WorkPackageStatus {
+  DRAFT
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ConstructionTaskStatus {
+  TODO
+  ASSIGNED
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  BLOCKED
+  CANCELLED
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  PASSED
+  FAILED
+  NEEDS_CORRECTION
+}
+
+enum SiteIssueStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model ConstructionPhase {
+  id          String                  @id @default(uuid()) @db.Uuid
+  projectId   String                  @db.Uuid
+  phaseCode   String
+  name        String
+  description String?
+  startDate   DateTime?               @db.Date
+  endDate     DateTime?               @db.Date
+  status      ConstructionPhaseStatus @default(PLANNED)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  project    Project                 @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  milestones ConstructionMilestone[]
+  tasks      ConstructionTask[]
+
+  @@unique([projectId, phaseCode])
+  @@unique([id, projectId])
+  @@index([projectId, status])
+  @@map("construction_phases")
+}
+
+model ConstructionMilestone {
+  id          String    @id @default(uuid()) @db.Uuid
+  phaseId     String    @db.Uuid
+  title       String
+  description String?
+  dueDate     DateTime? @db.Date
+  completedAt DateTime?
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  phase ConstructionPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId, dueDate])
+  @@map("construction_milestones")
+}
+
+model WorkPackage {
+  id             String            @id @default(uuid()) @db.Uuid
+  projectId      String            @db.Uuid
+  packageNo      String
+  title          String
+  description    String?
+  contractorName String?
+  contractValue  Decimal?          @db.Decimal(18, 2)
+  startDate      DateTime?         @db.Date
+  endDate        DateTime?         @db.Date
+  status         WorkPackageStatus @default(DRAFT)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  project Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  tasks   ConstructionTask[]
+
+  @@unique([projectId, packageNo])
+  @@unique([id, projectId])
+  @@index([projectId, status])
+  @@map("work_packages")
+}
+
+model ConstructionTask {
+  id              String                 @id @default(uuid()) @db.Uuid
+  projectId       String                 @db.Uuid
+  phaseId         String?                @db.Uuid
+  workPackageId   String?                @db.Uuid
+  taskNo          String
+  title           String
+  description     String?
+  status          ConstructionTaskStatus @default(TODO)
+  priority        Int                    @default(3)
+  plannedStart    DateTime?              @db.Date
+  plannedEnd      DateTime?              @db.Date
+  actualStart     DateTime?              @db.Date
+  actualEnd       DateTime?              @db.Date
+  progressPercent Decimal                @default(0) @db.Decimal(5, 2)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  project     Project               @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  phase       ConstructionPhase?    @relation(fields: [phaseId, projectId], references: [id, projectId], onDelete: Restrict)
+  workPackage WorkPackage?          @relation(fields: [workPackageId, projectId], references: [id, projectId], onDelete: Restrict)
+  assignments TaskAssignment[]
+  reports     DailyProgressReport[]
+
+  @@unique([projectId, taskNo])
+  @@unique([id, projectId])
+  @@index([projectId, status])
+  @@index([phaseId])
+  @@index([workPackageId])
+  @@map("construction_tasks")
+}
+
+model TaskAssignment {
+  id         String   @id @default(uuid()) @db.Uuid
+  taskId     String   @db.Uuid
+  userId     String   @db.Uuid
+  assignedAt DateTime @default(now())
+  notes      String?
+
+  task ConstructionTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([taskId, userId])
+  @@index([userId, assignedAt])
+  @@map("task_assignments")
+}
+
+model DailyProgressReport {
+  id               String   @id @default(uuid()) @db.Uuid
+  projectId        String   @db.Uuid
+  taskId           String?  @db.Uuid
+  submittedById    String   @db.Uuid
+  reportDate       DateTime @db.Date
+  workCompleted    String
+  workforceCount   Int      @default(0)
+  weatherCondition String?
+  materialsUsed    String?
+  issues           String?
+  nextDayPlan      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  task        ConstructionTask? @relation(fields: [taskId, projectId], references: [id, projectId], onDelete: Restrict)
+  submittedBy User              @relation("DailyReportSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+
+  @@index([projectId, reportDate])
+  @@index([submittedById, reportDate])
+  @@map("daily_progress_reports")
+}
+
+model SiteInspection {
+  id               String           @id @default(uuid()) @db.Uuid
+  projectId        String           @db.Uuid
+  inspectorId      String           @db.Uuid
+  inspectionDate   DateTime         @db.Date
+  status           InspectionStatus @default(SCHEDULED)
+  findings         String?
+  correctiveAction String?
+  reinspectionDate DateTime?        @db.Date
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  inspector User    @relation("SiteInspectionInspector", fields: [inspectorId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, inspectionDate])
+  @@index([inspectorId, inspectionDate])
+  @@map("site_inspections")
+}
+
+model SiteIssue {
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @db.Uuid
+  reportedById   String          @db.Uuid
+  title          String
+  description    String
+  severity       Int             @default(2)
+  status         SiteIssueStatus @default(OPEN)
+  reportedAt     DateTime        @default(now())
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  reportedBy User    @relation("SiteIssueReporter", fields: [reportedById], references: [id], onDelete: Restrict)
+
+  @@index([projectId, status, reportedAt])
+  @@index([reportedById])
+  @@map("site_issues")
+}
+
+model ConstructionDocument {
+  id          String   @id @default(uuid()) @db.Uuid
+  projectId   String   @db.Uuid
+  propertyId  String?  @db.Uuid
+  title       String
+  category    String
+  fileUrl     String
+  description String?
+  uploadedAt  DateTime @default(now())
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  property Property? @relation(fields: [propertyId, projectId], references: [id, projectId], onDelete: Restrict)
+
+  @@index([projectId, category])
+  @@index([propertyId])
+  @@map("construction_documents")
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  BLACKLISTED
+}
+
+enum ProcurementRequestStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  ORDERED
+  CANCELLED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum GoodsReceiptStatus {
+  DRAFT
+  INSPECTED
+  ACCEPTED
+  REJECTED
+}
+
+enum StockMovementType {
+  RECEIPT
+  ISSUE
+  TRANSFER_IN
+  TRANSFER_OUT
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RETURN
+}
+
+enum StockAdjustmentStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  POSTED
+}
+
+model Vendor {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  vendorCode     String
+  name           String
+  nameBn         String?
+  contactPerson  String?
+  phone          String?
+  email          String?
+  address        String?
+  taxId          String?
+  tradeLicenseNo String?
+  status         VendorStatus @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  purchaseOrders      PurchaseOrder[]
+  procurementRequests ProcurementRequest[]
+  expenses            Expense[]
+
+  @@unique([organizationId, vendorCode])
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, name])
+  @@map("vendors")
+}
+
+model MaterialCategory {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  code           String
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items        InventoryItem[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, isActive])
+  @@map("material_categories")
+}
+
+model InventoryItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  categoryId     String?  @db.Uuid
+  itemCode       String
+  name           String
+  nameBn         String?
+  description    String?
+  unit           String
+  reorderLevel   Decimal  @default(0) @db.Decimal(18, 4)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  category        MaterialCategory?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  requestItems    ProcurementRequestItem[]
+  orderItems      PurchaseOrderItem[]
+  receiptItems    GoodsReceiptItem[]
+  movements       StockMovement[]
+  adjustmentItems StockAdjustmentItem[]
+
+  @@unique([organizationId, itemCode])
+  @@index([organizationId, name])
+  @@index([categoryId])
+  @@map("inventory_items")
+}
+
+model Warehouse {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  code           String
+  address        String?
+  projectId      String?  @db.Uuid
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?          @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  receipts     GoodsReceipt[]
+  movements    StockMovement[]
+  adjustments  StockAdjustment[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([organizationId, isActive])
+  @@map("warehouses")
+}
+
+model ProcurementRequest {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @db.Uuid
+  projectId      String                   @db.Uuid
+  vendorId       String?                  @db.Uuid
+  requestedById  String                   @db.Uuid
+  requestNo      String
+  status         ProcurementRequestStatus @default(DRAFT)
+  requestDate    DateTime                 @db.Date
+  requiredDate   DateTime?                @db.Date
+  purpose        String?
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project                  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  vendor       Vendor?                  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  requestedBy  User                     @relation("ProcurementRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  items        ProcurementRequestItem[]
+
+  @@unique([organizationId, requestNo])
+  @@index([projectId, status])
+  @@index([requestedById, requestDate])
+  @@map("procurement_requests")
+}
+
+model ProcurementRequestItem {
+  id                 String   @id @default(uuid()) @db.Uuid
+  requestId          String   @db.Uuid
+  itemId             String   @db.Uuid
+  requestedQty       Decimal  @db.Decimal(18, 4)
+  estimatedUnitPrice Decimal? @db.Decimal(18, 2)
+  notes              String?
+  createdAt          DateTime @default(now())
+
+  request ProcurementRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item    InventoryItem      @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([requestId, itemId])
+  @@index([itemId])
+  @@map("procurement_request_items")
+}
+
+model PurchaseOrder {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  projectId      String              @db.Uuid
+  vendorId       String              @db.Uuid
+  createdById    String              @db.Uuid
+  orderNo        String
+  status         PurchaseOrderStatus @default(DRAFT)
+  orderDate      DateTime            @db.Date
+  expectedDate   DateTime?           @db.Date
+  subtotal       Decimal             @default(0) @db.Decimal(18, 2)
+  discountAmount Decimal             @default(0) @db.Decimal(18, 2)
+  taxAmount      Decimal             @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal             @default(0) @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  vendor       Vendor              @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  createdBy    User                @relation("PurchaseOrderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  items        PurchaseOrderItem[]
+  receipts     GoodsReceipt[]
+
+  @@unique([organizationId, orderNo])
+  @@index([projectId, status])
+  @@index([vendorId, orderDate])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  purchaseOrderId String   @db.Uuid
+  itemId          String   @db.Uuid
+  quantity        Decimal  @db.Decimal(18, 4)
+  receivedQty     Decimal  @default(0) @db.Decimal(18, 4)
+  unitPrice       Decimal  @db.Decimal(18, 2)
+  totalAmount     Decimal  @db.Decimal(18, 2)
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  item          InventoryItem      @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  receiptItems  GoodsReceiptItem[]
+
+  @@unique([purchaseOrderId, itemId])
+  @@unique([id, purchaseOrderId, itemId])
+  @@index([itemId])
+  @@map("purchase_order_items")
+}
+
+model GoodsReceipt {
+  id              String             @id @default(uuid()) @db.Uuid
+  purchaseOrderId String             @db.Uuid
+  warehouseId     String             @db.Uuid
+  receivedById    String             @db.Uuid
+  receiptNo       String
+  receiptDate     DateTime           @db.Date
+  status          GoodsReceiptStatus @default(DRAFT)
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  purchaseOrder PurchaseOrder      @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  warehouse     Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  receivedBy    User               @relation("GoodsReceiptReceiver", fields: [receivedById], references: [id], onDelete: Restrict)
+  items         GoodsReceiptItem[]
+
+  @@unique([warehouseId, receiptNo])
+  @@unique([id, purchaseOrderId])
+  @@index([purchaseOrderId, receiptDate])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id                  String   @id @default(uuid()) @db.Uuid
+  goodsReceiptId      String   @db.Uuid
+  purchaseOrderId     String   @db.Uuid
+  purchaseOrderItemId String   @db.Uuid
+  itemId              String   @db.Uuid
+  receivedQty         Decimal  @db.Decimal(18, 4)
+  acceptedQty         Decimal  @default(0) @db.Decimal(18, 4)
+  rejectedQty         Decimal  @default(0) @db.Decimal(18, 4)
+  notes               String?
+  createdAt           DateTime @default(now())
+
+  goodsReceipt      GoodsReceipt      @relation(fields: [goodsReceiptId, purchaseOrderId], references: [id, purchaseOrderId], onDelete: Cascade)
+  purchaseOrderItem PurchaseOrderItem @relation(fields: [purchaseOrderItemId, purchaseOrderId, itemId], references: [id, purchaseOrderId, itemId], onDelete: Restrict)
+  item              InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@index([goodsReceiptId])
+  @@index([purchaseOrderItemId])
+  @@index([itemId])
+  @@map("goods_receipt_items")
+}
+
+model StockMovement {
+  id            String            @id @default(uuid()) @db.Uuid
+  itemId        String            @db.Uuid
+  warehouseId   String            @db.Uuid
+  recordedById  String            @db.Uuid
+  movementType  StockMovementType
+  quantity      Decimal           @db.Decimal(18, 4)
+  unitCost      Decimal?          @db.Decimal(18, 2)
+  referenceType String?
+  referenceId   String?           @db.Uuid
+  movementDate  DateTime          @default(now())
+  notes         String?
+  createdAt     DateTime          @default(now())
+
+  item       InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  warehouse  Warehouse     @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  recordedBy User          @relation("StockMovementRecorder", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([itemId, warehouseId, movementDate])
+  @@index([referenceType, referenceId])
+  @@map("stock_movements")
+}
+
+model StockAdjustment {
+  id             String                @id @default(uuid()) @db.Uuid
+  warehouseId    String                @db.Uuid
+  createdById    String                @db.Uuid
+  adjustmentNo   String
+  status         StockAdjustmentStatus @default(DRAFT)
+  adjustmentDate DateTime              @db.Date
+  reason         String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  warehouse Warehouse             @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  createdBy User                  @relation("StockAdjustmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  items     StockAdjustmentItem[]
+
+  @@unique([warehouseId, adjustmentNo])
+  @@index([warehouseId, status])
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  adjustmentId String   @db.Uuid
+  itemId       String   @db.Uuid
+  countedQty   Decimal  @db.Decimal(18, 4)
+  systemQty    Decimal  @db.Decimal(18, 4)
+  difference   Decimal  @db.Decimal(18, 4)
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  adjustment StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  item       InventoryItem   @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  @@unique([adjustmentId, itemId])
+  @@index([itemId])
+  @@map("stock_adjustment_items")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  TERMINATED
+  ON_LEAVE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  ON_LEAVE
+  HOLIDAY
+}
+
+enum LeaveRequestStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PayrollStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PROCESSED
+  CANCELLED
+}
+
+enum SalaryPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REVERSED
+}
+
+model Employee {
+  id                String         @id @default(uuid()) @db.Uuid
+  organizationId    String         @db.Uuid
+  userId            String?        @unique @db.Uuid
+  branchId          String?        @db.Uuid
+  departmentId      String?        @db.Uuid
+  salaryStructureId String?        @db.Uuid
+  employeeCode      String
+  fullName          String
+  fullNameBn        String?
+  email             String?
+  phone             String?
+  designation       String?
+  employmentType    String?
+  joiningDate       DateTime       @db.Date
+  resignationDate   DateTime?      @db.Date
+  status            EmployeeStatus @default(ACTIVE)
+  nationalId        String?
+  address           String?
+  emergencyContact  String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user            User?              @relation("UserEmployee", fields: [userId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  branch          Branch?            @relation(fields: [branchId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  department      Department?        @relation(fields: [departmentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  salaryStructure SalaryStructure?   @relation(fields: [salaryStructureId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  documents       EmployeeDocument[]
+  attendance      Attendance[]
+  leaveRequests   LeaveRequest[]
+  payrollItems    PayrollItem[]
+
+  @@unique([organizationId, employeeCode])
+  @@unique([id, organizationId])
+  @@unique([userId, organizationId])
+  @@index([organizationId, status])
+  @@index([departmentId])
+  @@index([branchId])
+  @@map("employees")
+}
+
+model EmployeeDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  employeeId   String    @db.Uuid
+  documentType String
+  title        String
+  fileUrl      String
+  issueDate    DateTime? @db.Date
+  expiryDate   DateTime? @db.Date
+  createdAt    DateTime  @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, documentType])
+  @@map("employee_documents")
+}
+
+model Attendance {
+  id             String           @id @default(uuid()) @db.Uuid
+  employeeId     String           @db.Uuid
+  attendanceDate DateTime         @db.Date
+  status         AttendanceStatus @default(PRESENT)
+  checkIn        DateTime?
+  checkOut       DateTime?
+  overtimeHours  Decimal          @default(0) @db.Decimal(8, 2)
+  notes          String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([employeeId, attendanceDate])
+  @@index([attendanceDate, status])
+  @@map("attendance")
+}
+
+model LeaveType {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  name            String
+  code            String
+  annualAllowance Decimal  @default(0) @db.Decimal(8, 2)
+  isPaid          Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  requests     LeaveRequest[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @db.Uuid
+  employeeId     String             @db.Uuid
+  leaveTypeId    String             @db.Uuid
+  reviewedById   String?            @db.Uuid
+  startDate      DateTime           @db.Date
+  endDate        DateTime           @db.Date
+  totalDays      Decimal            @db.Decimal(8, 2)
+  reason         String?
+  status         LeaveRequestStatus @default(DRAFT)
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  employee     Employee     @relation(fields: [employeeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  leaveType    LeaveType    @relation(fields: [leaveTypeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reviewer     User?        @relation("LeaveReviewer", fields: [reviewedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([employeeId, startDate, endDate])
+  @@index([status, startDate])
+  @@index([organizationId, status])
+  @@map("leave_requests")
+}
+
+model SalaryStructure {
+  id                 String    @id @default(uuid()) @db.Uuid
+  organizationId     String    @db.Uuid
+  name               String
+  basicSalary        Decimal   @db.Decimal(18, 2)
+  houseAllowance     Decimal   @default(0) @db.Decimal(18, 2)
+  medicalAllowance   Decimal   @default(0) @db.Decimal(18, 2)
+  transportAllowance Decimal   @default(0) @db.Decimal(18, 2)
+  otherAllowance     Decimal   @default(0) @db.Decimal(18, 2)
+  effectiveFrom      DateTime  @db.Date
+  effectiveTo        DateTime? @db.Date
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  employees    Employee[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, isActive])
+  @@map("salary_structures")
+}
+
+model Payroll {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  payrollNo      String
+  year           Int
+  month          Int
+  periodStart    DateTime      @db.Date
+  periodEnd      DateTime      @db.Date
+  totalGross     Decimal       @default(0) @db.Decimal(18, 2)
+  totalDeduction Decimal       @default(0) @db.Decimal(18, 2)
+  totalNet       Decimal       @default(0) @db.Decimal(18, 2)
+  status         PayrollStatus @default(DRAFT)
+  processedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  items        PayrollItem[]
+
+  @@unique([organizationId, payrollNo])
+  @@unique([organizationId, year, month])
+  @@unique([id, organizationId])
+  @@index([organizationId, status])
+  @@map("payrolls")
+}
+
+model PayrollItem {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  payrollId      String   @db.Uuid
+  employeeId     String   @db.Uuid
+  projectId      String?  @db.Uuid
+  basicSalary    Decimal  @db.Decimal(18, 2)
+  allowances     Decimal  @default(0) @db.Decimal(18, 2)
+  overtimeAmount Decimal  @default(0) @db.Decimal(18, 2)
+  deductions     Decimal  @default(0) @db.Decimal(18, 2)
+  grossAmount    Decimal  @db.Decimal(18, 2)
+  netAmount      Decimal  @db.Decimal(18, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  payroll  Payroll         @relation(fields: [payrollId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  employee Employee        @relation(fields: [employeeId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  project  Project?        @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  payments SalaryPayment[]
+
+  @@unique([payrollId, employeeId])
+  @@unique([id, organizationId])
+  @@index([organizationId])
+  @@index([employeeId])
+  @@index([projectId])
+  @@map("payroll_items")
+}
+
+model SalaryPayment {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  payrollItemId  String              @db.Uuid
+  recordedById   String?             @db.Uuid
+  paymentNo      String
+  amount         Decimal             @db.Decimal(18, 2)
+  method         PaymentMethod
+  status         SalaryPaymentStatus @default(PENDING)
+  paidAt         DateTime?
+  transactionRef String?
+  notes          String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  payrollItem  PayrollItem  @relation(fields: [payrollItemId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy   User?        @relation("SalaryPaymentRecorder", fields: [recordedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([paymentNo])
+  @@index([payrollItemId, status])
+  @@index([paidAt])
+  @@index([organizationId, status])
+  @@map("salary_payments")
+}
+
+enum InvestorType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum InvestorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum InvestmentStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ContributionStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  REVERSED
+}
+
+enum ProfitDistributionStatus {
+  DRAFT
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum InvestorWithdrawalStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
+  CANCELLED
+}
+
+model Investor {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  investorNo     String
+  investorType   InvestorType   @default(INDIVIDUAL)
+  name           String
+  nameBn         String?
+  companyName    String?
+  email          String?
+  phone          String?
+  address        String?
+  nationalId     String?
+  tradeLicense   String?
+  taxId          String?
+  status         InvestorStatus @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  investments  Investment[]
+
+  @@unique([organizationId, investorNo])
+  @@index([organizationId, status])
+  @@index([organizationId, name])
+  @@map("investors")
+}
+
+model Investment {
+  id               String           @id @default(uuid()) @db.Uuid
+  organizationId   String           @db.Uuid
+  projectId        String           @db.Uuid
+  investorId       String           @db.Uuid
+  investmentNo     String
+  committedAmount  Decimal          @default(0) @db.Decimal(18, 2)
+  ownershipPercent Decimal?         @db.Decimal(7, 4)
+  investmentDate   DateTime         @db.Date
+  maturityDate     DateTime?        @db.Date
+  status           InvestmentStatus @default(DRAFT)
+  terms            String?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor     Investor     @relation(fields: [investorId], references: [id], onDelete: Restrict)
+
+  contributions InvestorContribution[]
+  distributions ProfitDistribution[]
+  withdrawals   InvestorWithdrawal[]
+  agreements    InvestmentAgreement[]
+
+  @@unique([organizationId, investmentNo])
+  @@index([projectId, investorId])
+  @@index([organizationId, status])
+  @@map("investments")
+}
+
+model InvestorContribution {
+  id               String             @id @default(uuid()) @db.Uuid
+  organizationId   String             @db.Uuid
+  projectId        String             @db.Uuid
+  investmentId     String             @db.Uuid
+  contributionNo   String
+  amount           Decimal            @db.Decimal(18, 2)
+  contributionDate DateTime           @db.Date
+  paymentMethod    PaymentMethod
+  referenceNo      String?
+  status           ContributionStatus @default(PENDING)
+  recordedById     String?            @db.Uuid
+  notes            String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Restrict)
+  recordedBy   User?        @relation("InvestorContributionRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, contributionNo])
+  @@index([investmentId, contributionDate])
+  @@index([projectId, status])
+  @@map("investor_contributions")
+}
+
+model ProfitDistribution {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @db.Uuid
+  projectId      String                   @db.Uuid
+  investmentId   String                   @db.Uuid
+  distributionNo String
+  periodStart    DateTime?                @db.Date
+  periodEnd      DateTime?                @db.Date
+  grossAmount    Decimal                  @db.Decimal(18, 2)
+  taxWithheld    Decimal                  @default(0) @db.Decimal(18, 2)
+  netAmount      Decimal                  @db.Decimal(18, 2)
+  status         ProfitDistributionStatus @default(DRAFT)
+  paymentMethod  PaymentMethod?
+  paidAt         DateTime?
+  recordedById   String?                  @db.Uuid
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Restrict)
+  recordedBy   User?        @relation("ProfitDistributionRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, distributionNo])
+  @@index([investmentId, status])
+  @@index([projectId, periodStart, periodEnd])
+  @@map("profit_distributions")
+}
+
+model InvestorWithdrawal {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @db.Uuid
+  projectId      String                   @db.Uuid
+  investmentId   String                   @db.Uuid
+  withdrawalNo   String
+  amount         Decimal                  @db.Decimal(18, 2)
+  withdrawalDate DateTime                 @db.Date
+  paymentMethod  PaymentMethod?
+  referenceNo    String?
+  status         InvestorWithdrawalStatus @default(PENDING)
+  recordedById   String?                  @db.Uuid
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Restrict)
+  recordedBy   User?        @relation("InvestorWithdrawalRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, withdrawalNo])
+  @@index([investmentId, withdrawalDate])
+  @@index([projectId, status])
+  @@map("investor_withdrawals")
+}
+
+model InvestmentAgreement {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  projectId      String    @db.Uuid
+  investmentId   String    @db.Uuid
+  agreementNo    String
+  title          String
+  documentUrl    String?
+  signedDate     DateTime? @db.Date
+  expiryDate     DateTime? @db.Date
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investment   Investment   @relation(fields: [investmentId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, agreementNo])
+  @@index([investmentId])
+  @@map("investment_agreements")
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum AccountNormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum AccountingPeriodStatus {
+  OPEN
+  CLOSED
+  LOCKED
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  APPROVED
+  POSTED
+  REVERSED
+}
+
+enum JournalSourceType {
+  MANUAL
+  CUSTOMER_PAYMENT
+  SALES_BOOKING
+  VENDOR_PAYMENT
+  PROCUREMENT
+  PAYROLL
+  INVESTOR_CONTRIBUTION
+  PROFIT_DISTRIBUTION
+  INVESTOR_WITHDRAWAL
+  EXPENSE
+  RECEIPT
+  BANK_TRANSACTION
+  STOCK_MOVEMENT
+  LAND_ACQUISITION
+  OPENING_BALANCE
+}
+
+enum BankTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+}
+
+enum BankTransactionStatus {
+  UNMATCHED
+  MATCHED
+  RECONCILED
+  VOIDED
+}
+
+enum BankReconciliationStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum FinancialRecordStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  POSTED
+  CANCELLED
+}
+
+model ChartOfAccount {
+  id             String               @id @default(uuid()) @db.Uuid
+  organizationId String               @db.Uuid
+  parentId       String?              @db.Uuid
+  code           String
+  name           String
+  nameBn         String?
+  accountType    AccountType
+  normalBalance  AccountNormalBalance
+  isGroup        Boolean              @default(false)
+  allowPosting   Boolean              @default(true)
+  isActive       Boolean              @default(true)
+  description    String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parent       ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  children     ChartOfAccount[] @relation("AccountHierarchy")
+
+  journalLines JournalLine[]
+  bankAccounts BankAccount[]
+  expenses     Expense[]           @relation("ExpenseAccount")
+  receipts     Receipt[]           @relation("ReceiptAccount")
+  budgetLines  ProjectBudgetLine[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([organizationId, accountType, isActive])
+  @@index([parentId])
+  @@map("chart_of_accounts")
+}
+
+model AccountingPeriod {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @db.Uuid
+  financialYearId String                 @db.Uuid
+  name            String
+  startDate       DateTime               @db.Date
+  endDate         DateTime               @db.Date
+  status          AccountingPeriodStatus @default(OPEN)
+  closedAt        DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  financialYear  FinancialYear  @relation(fields: [financialYearId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  journalEntries JournalEntry[]
+
+  @@unique([organizationId, name])
+  @@unique([id, organizationId])
+  @@index([financialYearId, status])
+  @@map("accounting_periods")
+}
+
+model JournalEntry {
+  id                 String             @id @default(uuid()) @db.Uuid
+  organizationId     String             @db.Uuid
+  accountingPeriodId String             @db.Uuid
+  entryNo            String
+  entryDate          DateTime           @db.Date
+  description        String
+  sourceType         JournalSourceType  @default(MANUAL)
+  sourceReference    String?
+  status             JournalEntryStatus @default(DRAFT)
+  totalDebit         Decimal            @default(0) @db.Decimal(18, 2)
+  totalCredit        Decimal            @default(0) @db.Decimal(18, 2)
+  createdById        String             @db.Uuid
+  approvedById       String?            @db.Uuid
+  postedAt           DateTime?
+  reversedAt         DateTime?
+  reversalOfId       String?            @unique @db.Uuid
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  accountingPeriod AccountingPeriod @relation(fields: [accountingPeriodId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  createdBy        User             @relation("JournalCreator", fields: [createdById, organizationId], references: [id, organizationId], onDelete: Restrict)
+  approvedBy       User?            @relation("JournalApprover", fields: [approvedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reversalOf       JournalEntry?    @relation("JournalReversal", fields: [reversalOfId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reversalEntries  JournalEntry[]   @relation("JournalReversal")
+  lines            JournalLine[]
+
+  @@unique([organizationId, entryNo])
+  @@unique([id, organizationId])
+  @@unique([organizationId, sourceType, sourceReference])
+  @@index([organizationId, entryDate, status])
+  @@index([accountingPeriodId, status])
+  @@index([sourceType])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  journalEntryId String   @db.Uuid
+  accountId      String   @db.Uuid
+  projectId      String?  @db.Uuid
+  costCenterId   String?  @db.Uuid
+  bankAccountId  String?  @db.Uuid
+  description    String?
+  debit          Decimal  @default(0) @db.Decimal(18, 2)
+  credit         Decimal  @default(0) @db.Decimal(18, 2)
+  lineOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  journalEntry JournalEntry   @relation(fields: [journalEntryId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  account      ChartOfAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  project      Project?       @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  costCenter   CostCenter?    @relation(fields: [costCenterId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  bankAccount  BankAccount?   @relation(fields: [bankAccountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@index([accountId, journalEntryId])
+  @@index([projectId, accountId])
+  @@index([costCenterId])
+  @@index([organizationId])
+  @@map("journal_lines")
+}
+
+model CostCenter {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  projectId      String?  @db.Uuid
+  code           String
+  name           String
+  nameBn         String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?      @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  journalLines JournalLine[]
+
+  @@unique([organizationId, code])
+  @@unique([id, organizationId])
+  @@index([projectId, isActive])
+  @@map("cost_centers")
+}
+
+model BankAccount {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  accountId      String   @db.Uuid
+  bankName       String
+  branchName     String?
+  accountName    String
+  accountNumber  String
+  routingNumber  String?
+  currency       String   @default("BDT")
+  openingBalance Decimal  @default(0) @db.Decimal(18, 2)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  account         ChartOfAccount       @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  transactions    BankTransaction[]
+  reconciliations BankReconciliation[]
+  journalLines    JournalLine[]
+  receipts        Receipt[]
+
+  @@unique([organizationId, accountNumber])
+  @@unique([id, organizationId])
+  @@index([organizationId, isActive])
+  @@map("bank_accounts")
+}
+
+model BankTransaction {
+  id               String                @id @default(uuid()) @db.Uuid
+  organizationId   String                @db.Uuid
+  bankAccountId    String                @db.Uuid
+  transactionDate  DateTime              @db.Date
+  transactionType  BankTransactionType
+  amount           Decimal               @db.Decimal(18, 2)
+  referenceNo      String?
+  description      String?
+  status           BankTransactionStatus @default(UNMATCHED)
+  reconciliationId String?               @db.Uuid
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  bankAccount    BankAccount         @relation(fields: [bankAccountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  reconciliation BankReconciliation? @relation(fields: [reconciliationId, bankAccountId, organizationId], references: [id, bankAccountId, organizationId], onDelete: Restrict)
+
+  @@index([bankAccountId, transactionDate])
+  @@index([organizationId])
+  @@index([reconciliationId, status])
+  @@map("bank_transactions")
+}
+
+model BankReconciliation {
+  id               String                   @id @default(uuid()) @db.Uuid
+  organizationId   String                   @db.Uuid
+  bankAccountId    String                   @db.Uuid
+  periodStart      DateTime                 @db.Date
+  periodEnd        DateTime                 @db.Date
+  statementBalance Decimal                  @db.Decimal(18, 2)
+  bookBalance      Decimal                  @db.Decimal(18, 2)
+  difference       Decimal                  @db.Decimal(18, 2)
+  status           BankReconciliationStatus @default(DRAFT)
+  recordedById     String                   @db.Uuid
+  completedAt      DateTime?
+  notes            String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  bankAccount  BankAccount       @relation(fields: [bankAccountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy   User              @relation("BankReconciliationRecorder", fields: [recordedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+  transactions BankTransaction[]
+
+  @@unique([bankAccountId, periodStart, periodEnd])
+  @@unique([id, bankAccountId])
+  @@unique([id, bankAccountId, organizationId])
+  @@index([status, periodEnd])
+  @@index([organizationId])
+  @@map("bank_reconciliations")
+}
+
+model Expense {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @db.Uuid
+  projectId       String?               @db.Uuid
+  accountId       String                @db.Uuid
+  vendorId        String?               @db.Uuid
+  expenseNo       String
+  expenseDate     DateTime              @db.Date
+  description     String
+  amount          Decimal               @db.Decimal(18, 2)
+  status          FinancialRecordStatus @default(DRAFT)
+  sourceReference String?
+  recordedById    String                @db.Uuid
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?       @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  account      ChartOfAccount @relation("ExpenseAccount", fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  vendor       Vendor?        @relation(fields: [vendorId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy   User           @relation("ExpenseRecorder", fields: [recordedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, expenseNo])
+  @@index([projectId, expenseDate])
+  @@index([organizationId, status, expenseDate])
+  @@map("expenses")
+}
+
+model Receipt {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @db.Uuid
+  projectId       String?               @db.Uuid
+  accountId       String                @db.Uuid
+  bankAccountId   String?               @db.Uuid
+  receiptNo       String
+  receiptDate     DateTime              @db.Date
+  description     String
+  amount          Decimal               @db.Decimal(18, 2)
+  status          FinancialRecordStatus @default(DRAFT)
+  sourceReference String?
+  recordedById    String                @db.Uuid
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project      Project?       @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  account      ChartOfAccount @relation("ReceiptAccount", fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  bankAccount  BankAccount?   @relation(fields: [bankAccountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  recordedBy   User           @relation("ReceiptRecorder", fields: [recordedById, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, receiptNo])
+  @@index([projectId, receiptDate])
+  @@index([organizationId, status, receiptDate])
+  @@map("receipts")
+}
+
+model ProjectBudget {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @db.Uuid
+  projectId       String                @db.Uuid
+  financialYearId String?               @db.Uuid
+  budgetNo        String
+  name            String
+  totalAmount     Decimal               @default(0) @db.Decimal(18, 2)
+  status          FinancialRecordStatus @default(DRAFT)
+  approvedAt      DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  organization  Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  project       Project             @relation(fields: [projectId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  financialYear FinancialYear?      @relation(fields: [financialYearId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  lines         ProjectBudgetLine[]
+
+  @@unique([organizationId, budgetNo])
+  @@unique([id, organizationId])
+  @@index([projectId, status])
+  @@map("project_budgets")
+}
+
+model ProjectBudgetLine {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  budgetId       String   @db.Uuid
+  accountId      String   @db.Uuid
+  budgetAmount   Decimal  @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  budget       ProjectBudget  @relation(fields: [budgetId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  account      ChartOfAccount @relation(fields: [accountId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  organization Organization   @relation(fields: [organizationId], references: [id])
+
+  @@unique([budgetId, accountId])
+  @@index([accountId])
+  @@index([organizationId])
+  @@map("project_budget_lines")
+}
+
+enum ApprovalWorkflowStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  RETURNED
+  DELEGATED
+}
+
+enum ApprovalApproverType {
+  USER
+  ROLE
+  DEPARTMENT
+}
+
+enum NotificationType {
+  APPROVAL_REQUEST
+  APPROVAL_APPROVED
+  APPROVAL_REJECTED
+  APPROVAL_RETURNED
+  PAYMENT
+  BOOKING
+  INSTALLMENT
+  PROCUREMENT
+  PAYROLL
+  SYSTEM
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+model ApprovalWorkflow {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @db.Uuid
+  workflowKey    String
+  name           String
+  nameBn         String?
+  moduleKey      String
+  description    String?
+  status         ApprovalWorkflowStatus @default(ACTIVE)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  steps        ApprovalStep[]
+  requests     ApprovalRequest[]
+
+  @@unique([organizationId, workflowKey])
+  @@unique([id, organizationId])
+  @@index([organizationId, moduleKey, status])
+  @@map("approval_workflows")
+}
+
+model ApprovalStep {
+  id                String               @id @default(uuid()) @db.Uuid
+  organizationId    String               @db.Uuid
+  workflowId        String               @db.Uuid
+  stepOrder         Int
+  name              String
+  nameBn            String?
+  approverType      ApprovalApproverType
+  approverUserId    String?              @db.Uuid
+  approverRoleCode  String?
+  departmentCode    String?
+  isRequired        Boolean              @default(true)
+  allowSelfApproval Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  workflow     ApprovalWorkflow @relation(fields: [workflowId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  approverUser User?            @relation("ApprovalStepAssignee", fields: [approverUserId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  actions      ApprovalAction[]
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([workflowId, stepOrder])
+  @@unique([id, workflowId, organizationId])
+  @@index([approverUserId])
+  @@index([organizationId])
+  @@map("approval_steps")
+}
+
+model ApprovalRequest {
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @db.Uuid
+  workflowId     String                @db.Uuid
+  requesterId    String                @db.Uuid
+  requestNo      String
+  entityType     String
+  entityId       String                @db.Uuid
+  subject        String
+  description    String?
+  currentStep    Int                   @default(1)
+  status         ApprovalRequestStatus @default(PENDING)
+  submittedAt    DateTime              @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization  Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  workflow      ApprovalWorkflow @relation(fields: [workflowId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  requester     User             @relation("ApprovalRequester", fields: [requesterId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  actions       ApprovalAction[]
+  notifications Notification[]
+
+  @@unique([organizationId, requestNo])
+  @@unique([id, organizationId])
+  @@unique([id, workflowId, organizationId])
+  @@index([organizationId, status, submittedAt])
+  @@index([entityType, entityId])
+  @@index([workflowId, status])
+  @@index([requesterId, submittedAt])
+  @@map("approval_requests")
+}
+
+model ApprovalAction {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  requestId      String           @db.Uuid
+  workflowId     String           @db.Uuid
+  stepId         String           @db.Uuid
+  actorId        String           @db.Uuid
+  decision       ApprovalDecision
+  comments       String?
+  delegatedToId  String?          @db.Uuid
+  actionAt       DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+
+  request      ApprovalRequest @relation(fields: [requestId, workflowId, organizationId], references: [id, workflowId, organizationId], onDelete: Restrict)
+  step         ApprovalStep    @relation(fields: [stepId, workflowId, organizationId], references: [id, workflowId, organizationId], onDelete: Restrict)
+  actor        User            @relation("ApprovalActionActor", fields: [actorId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  delegatedTo  User?           @relation("ApprovalActionDelegate", fields: [delegatedToId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([requestId, actionAt])
+  @@index([stepId, actionAt])
+  @@index([actorId, actionAt])
+  @@index([organizationId])
+  @@map("approval_actions")
+}
+
+model Notification {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  userId            String             @db.Uuid
+  approvalRequestId String?            @db.Uuid
+  type              NotificationType
+  title             String
+  titleBn           String?
+  message           String
+  messageBn         String?
+  status            NotificationStatus @default(UNREAD)
+  readAt            DateTime?
+  createdAt         DateTime           @default(now())
+
+  user            User             @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  approvalRequest ApprovalRequest? @relation(fields: [approvalRequestId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status, createdAt])
+  @@index([approvalRequestId])
+  @@index([organizationId])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @db.Uuid
+  userId             String   @unique @db.Uuid
+  inAppEnabled       Boolean  @default(true)
+  emailEnabled       Boolean  @default(false)
+  approvalEnabled    Boolean  @default(true)
+  paymentEnabled     Boolean  @default(true)
+  projectEnabled     Boolean  @default(true)
+  procurementEnabled Boolean  @default(true)
+  payrollEnabled     Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("notification_preferences")
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum StorageProvider {
+  FILESYSTEM
+  S3_COMPATIBLE
+  SUPABASE
+  AZURE_BLOB
+}
+
+model OrganizationSetting {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  settingKey     String
+  value          Json
+  description    String?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, settingKey])
+  @@index([organizationId])
+  @@map("organization_settings")
+}
+
+model ModuleSetting {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  moduleKey      String
+  settingKey     String
+  value          Json
+  description    String?
+  isEnabled      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, moduleKey, settingKey])
+  @@index([organizationId, moduleKey, isEnabled])
+  @@map("module_settings")
+}
+
+model SequenceCounter {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  moduleKey      String
+  sequenceKey    String
+  fiscalYear     String   @default("GENERAL")
+  prefix         String?
+  currentValue   BigInt   @default(0)
+  paddingLength  Int      @default(5)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, moduleKey, sequenceKey, fiscalYear])
+  @@index([organizationId, moduleKey])
+  @@map("sequence_counters")
+}
+
+model DocumentFolder {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  parentFolderId String?  @db.Uuid
+  name           String
+  nameBn         String?
+  description    String?
+  createdById    String   @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  parentFolder DocumentFolder?  @relation("DocumentFolderTree", fields: [parentFolderId], references: [id], onDelete: Restrict)
+  childFolders DocumentFolder[] @relation("DocumentFolderTree")
+  createdBy    User             @relation("DocumentFolderCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  documents    Document[]
+
+  @@unique([organizationId, parentFolderId, name])
+  @@index([organizationId, parentFolderId])
+  @@map("document_folders")
+}
+
+model Document {
+  id              String          @id @default(uuid()) @db.Uuid
+  organizationId  String          @db.Uuid
+  folderId        String?         @db.Uuid
+  documentNo      String?
+  title           String
+  titleBn         String?
+  description     String?
+  fileName        String
+  mimeType        String
+  fileSize        BigInt
+  storageProvider StorageProvider
+  storageKey      String
+  checksum        String?
+  status          DocumentStatus  @default(ACTIVE)
+  isConfidential  Boolean         @default(false)
+  createdById     String          @db.Uuid
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  folder       DocumentFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdBy    User              @relation("DocumentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  versions     DocumentVersion[]
+  attachments  FileAttachment[]
+
+  @@unique([organizationId, documentNo])
+  @@unique([storageProvider, storageKey])
+  @@index([organizationId, status, createdAt])
+  @@index([folderId])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id              String          @id @default(uuid()) @db.Uuid
+  documentId      String          @db.Uuid
+  versionNo       Int
+  fileName        String
+  mimeType        String
+  fileSize        BigInt
+  storageProvider StorageProvider
+  storageKey      String
+  checksum        String?
+  changeNote      String?
+  uploadedById    String          @db.Uuid
+  createdAt       DateTime        @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  uploadedBy User     @relation("DocumentVersionUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, versionNo])
+  @@unique([storageProvider, storageKey])
+  @@index([uploadedById, createdAt])
+  @@map("document_versions")
+}
+
+model FileAttachment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  documentId     String   @db.Uuid
+  entityType     String
+  entityId       String   @db.Uuid
+  attachmentName String?
+  createdById    String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  document     Document     @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  createdBy    User         @relation("FileAttachmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, entityType, entityId])
+  @@index([organizationId, entityType, entityId])
+  @@index([documentId])
+  @@map("file_attachments")
 }

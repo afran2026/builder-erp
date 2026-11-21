@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+@import "../features/erp/design-system/tokens.css";
+@import "../features/erp/design-system/ui.css";
+@import "../features/erp/design-system/dashboard.css";
 :root {
   color-scheme: light;
   font-family: Arial, sans-serif;
